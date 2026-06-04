@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -39,7 +40,7 @@ fun ScreenColumn(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall)
+        DairyDashboardHeader(title = title, subtitle = "Manage daily operations")
         content()
     }
 }
@@ -53,6 +54,18 @@ fun LoadingState(message: String = "Loading...") {
     ) {
         CircularProgressIndicator()
         Text(message, modifier = Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun RefreshingState(message: String = "Refreshing...") {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        Text(message, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -84,7 +97,11 @@ fun ErrorState(message: String, onRetry: (() -> Unit)? = null, details: String? 
 
 @Composable
 fun EmptyState(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
-    Card {
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(message, style = MaterialTheme.typography.bodyMedium)
             if (actionLabel != null && onAction != null) {
@@ -96,12 +113,7 @@ fun EmptyState(message: String, actionLabel: String? = null, onAction: (() -> Un
 
 @Composable
 fun MetricCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, shape = RoundedCornerShape(8.dp)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-        }
-    }
+    DairyMetricCard(label = label, value = value, modifier = modifier)
 }
 
 @Composable
@@ -126,7 +138,7 @@ fun PaddedList(content: androidx.compose.foundation.lazy.LazyListScope.() -> Uni
 @Composable
 fun SectionTitle(text: String) {
     Spacer(Modifier.height(4.dp))
-    Text(text, style = MaterialTheme.typography.titleMedium)
+    DairySectionTitle(text = text)
 }
 
 private fun String.toSafeErrorMessage(): String =

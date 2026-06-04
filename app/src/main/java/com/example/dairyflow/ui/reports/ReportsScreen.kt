@@ -2,8 +2,10 @@ package com.example.dairyflow.ui.reports
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
@@ -13,11 +15,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.dairyflow.ui.common.DairyDashboardHeader
 import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
 import com.example.dairyflow.ui.common.LoadingState
-import com.example.dairyflow.ui.common.PaddedList
-import com.example.dairyflow.ui.common.ScreenColumn
+import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.common.SectionTitle
 import com.example.dairyflow.ui.viewmodel.ReportsViewModel
 
@@ -26,12 +28,19 @@ fun ReportsScreen(viewModel: ReportsViewModel) {
     val state by viewModel.state.collectAsState()
     LaunchedEffect(Unit) { viewModel.load() }
 
-    ScreenColumn("Reports") {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { DairyDashboardHeader(title = "Reports", subtitle = "Manage daily operations") }
+        if (state.isLoading && state.data != null) {
+            item { RefreshingState("Refreshing reports...") }
+        }
         when {
-            state.isLoading -> LoadingState()
-            state.error != null -> ErrorState(state.error ?: "Error", viewModel::load)
-            state.data == null -> EmptyState("No report data available.")
-            else -> PaddedList {
+            state.isLoading && state.data == null -> item { LoadingState("Loading reports...") }
+            state.error != null -> item { ErrorState(state.error ?: "Error", viewModel::load) }
+            state.data == null -> item { EmptyState("No report data available.") }
+            else -> {
                 item {
                     SectionTitle("Daily delivery")
                 }

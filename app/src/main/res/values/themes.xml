@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DairyFlow" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DairyFlow" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/dairy_cream</item>
+        <item name="android:colorAccent">@color/dairy_blue_sea</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:statusBarColor">@color/dairy_blue_sea</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

@@ -1,156 +1,178 @@
 package com.example.dairyflow.data.model
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class Profile(
     val id: String,
-    @SerialName("full_name") val fullName: String? = null,
+    val adminId: String? = null,
+    val deliveryBoyId: String? = null,
+    val adminAccessCode: String? = null,
+    val fullName: String? = null,
     val email: String? = null,
+    val authEmail: String? = null,
     val phone: String? = null,
+    val normalizedPhone: String? = null,
     val role: String = "customer",
-    @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("created_at") val createdAt: String? = null
+    val status: String = "active",
+    val loginEnabled: Boolean = true,
+    val qrLoginEnabled: Boolean = true,
+    val seededByDeveloper: Boolean = false,
+    val lastLoginMethod: String? = null,
+    val lastLoginAt: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null
 )
 
-@Serializable
 data class Customer(
     val id: String? = null,
-    @SerialName("profile_id") val profileId: String? = null,
-    @SerialName("route_id") val routeId: String? = null,
-    @SerialName("full_name") val fullName: String? = null,
+    val adminId: String? = null,
+    val profileId: String? = null,
+    val routeId: String? = null,
+    val fullName: String? = null,
     val name: String = fullName.orEmpty(),
-    @SerialName("mobile_number") val mobileNumber: String? = null,
+    val mobileNumber: String? = null,
     val phone: String? = null,
+    val email: String? = null,
     val address: String? = null,
+    val area: String? = null,
     val rate: Double = 0.0,
-    @SerialName("milk_rate") val milkRate: Double = rate,
-    @SerialName("daily_quantity") val dailyQuantity: Double = 0.0,
-    @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("created_at") val createdAt: String? = null
+    val milkRate: Double = rate,
+    val dailyQuantity: Double = 0.0,
+    val morningQuantity: Double = 0.0,
+    val eveningQuantity: Double = 0.0,
+    val milkType: String = "Cow",
+    val deliveryTime: String = "Morning",
+    val openingBalance: Double = 0.0,
+    val notes: String? = null,
+    val isActive: Boolean = true,
+    val createdAt: String? = null
 )
 
-@Serializable
 data class MilkProduct(
     val id: String? = null,
     val name: String,
-    @SerialName("default_rate") val defaultRate: Double = 0.0,
+    val defaultRate: Double = 0.0,
     val unit: String = "liter",
-    @SerialName("is_active") val isActive: Boolean = true
+    val isActive: Boolean = true
 )
 
-@Serializable
 data class DeliveryRecord(
     val id: String? = null,
-    @SerialName("customer_id") val customerId: String,
-    @SerialName("product_id") val productId: String? = null,
-    @SerialName("delivery_boy_id") val deliveryBoyId: String? = null,
-    @SerialName("route_id") val routeId: String? = null,
-    @SerialName("delivery_date") val deliveryDate: String,
-    @SerialName("delivery_shift") val shift: DeliveryShift = DeliveryShift.MORNING,
+    val customerId: String,
+    val productId: String? = null,
+    val deliveryBoyId: String? = null,
+    val routeId: String? = null,
+    val deliveryDate: String,
+    val shift: DeliveryShift = DeliveryShift.MORNING,
     val quantity: Double = 0.0,
-    @SerialName("unit_price") val unitPrice: Double = 0.0,
-    @SerialName("total_amount") val totalAmount: Double = quantity * unitPrice,
+    val unitPrice: Double = 0.0,
+    val totalAmount: Double = quantity * unitPrice,
     val status: DeliveryStatus = DeliveryStatus.DELIVERED,
-    @SerialName("skip_reason") val skipReason: String? = null,
+    val skipReason: String? = null,
     val notes: String? = null,
-    @SerialName("created_at") val createdAt: String? = null
+    val createdAt: String? = null
 ) {
     val extraQuantity: Double = 0.0
 }
 
-@Serializable
 data class BillingRecord(
     val id: String? = null,
-    @SerialName("invoice_number") val invoiceNumber: String = "",
-    @SerialName("customer_id") val customerId: String,
-    @SerialName("billing_month") val month: Int = 1,
-    @SerialName("billing_year") val year: Int = 1970,
-    @SerialName("total_quantity") val totalQuantity: Double = 0.0,
+    val invoiceNumber: String = "",
+    val customerId: String,
+    val month: Int = 1,
+    val year: Int = 1970,
+    val totalQuantity: Double = 0.0,
     val rate: Double = 0.0,
-    @SerialName("total_bill_amount") val totalAmount: Double = 0.0,
-    @SerialName("paid_amount") val paidAmount: Double = 0.0,
-    @SerialName("pending_amount") val dueAmount: Double = 0.0,
-    @SerialName("invoice_status") val billStatus: BillStatus = BillStatus.UNPAID,
-    @SerialName("generated_date") val generatedAt: String? = null
+    val totalAmount: Double = 0.0,
+    val paidAmount: Double = 0.0,
+    val dueAmount: Double = 0.0,
+    val billStatus: BillStatus = BillStatus.UNPAID,
+    val generatedAt: String? = null
 )
 
-@Serializable
 data class Payment(
     val id: String? = null,
-    @SerialName("customer_id") val customerId: String = "",
-    @SerialName("invoice_id") val billingRecordId: String = "",
+    val adminId: String? = null,
+    val customerId: String = "",
+    val invoiceId: String? = null,
+    val deliveryId: String? = null,
+    val collectedBy: String? = null,
     val amount: Double = 0.0,
-    @SerialName("payment_method") val method: PaymentMethod = PaymentMethod.CASH,
-    @SerialName("transaction_id") val transactionId: String? = null,
+    val paymentDate: String = "",
+    val paymentMethod: String = "Cash",
     val notes: String? = null,
-    @SerialName("payment_date") val paidAt: String? = null
-)
+    val createdAt: String? = null,
+    val updatedAt: String? = null
+) {
+    val billingRecordId: String get() = invoiceId.orEmpty()
+    val method: PaymentMethod get() = PaymentMethod.fromText(paymentMethod)
+    val transactionId: String? get() = null
+    val paidAt: String get() = paymentDate
+}
 
-@Serializable
 data class DeliveryBoy(
     val id: String? = null,
+    val adminId: String? = null,
+    val profileId: String? = null,
     val name: String,
     val phone: String? = null,
-    @SerialName("route_id") val routeId: String? = null,
-    @SerialName("is_active") val isActive: Boolean = true
+    val email: String? = null,
+    val routeId: String? = null,
+    val isActive: Boolean = true
 )
 
-@Serializable
 data class Route(
     val id: String? = null,
+    val adminId: String? = null,
     val name: String,
+    val area: String? = null,
     val description: String? = null,
-    @SerialName("is_active") val isActive: Boolean = true
+    val isActive: Boolean = true
 )
 
-@Serializable
 data class Expense(
     val id: String? = null,
     val title: String,
     val amount: Double,
     val category: String? = null,
-    @SerialName("expense_date") val expenseDate: String,
+    val expenseDate: String,
     val notes: String? = null
 )
 
-@Serializable
 data class AppNotification(
     val id: String? = null,
     val title: String,
     val message: String,
     val type: String = "info",
-    @SerialName("is_read") val isRead: Boolean = false,
-    @SerialName("created_at") val createdAt: String? = null
+    val isRead: Boolean = false,
+    val createdAt: String? = null
 )
 
-@Serializable
 enum class DeliveryShift {
-    @SerialName("morning") MORNING,
-    @SerialName("evening") EVENING
+    MORNING,
+    EVENING
 }
 
-@Serializable
 enum class DeliveryStatus {
-    @SerialName("pending") PENDING,
-    @SerialName("delivered") DELIVERED,
-    @SerialName("skipped") SKIPPED,
-    @SerialName("cancelled") CANCELLED
+    PENDING,
+    DELIVERED,
+    SKIPPED,
+    CANCELLED
 }
 
-@Serializable
 enum class BillStatus {
-    @SerialName("paid") PAID,
-    @SerialName("unpaid") UNPAID,
-    @SerialName("partial") PARTIAL
+    PAID,
+    UNPAID,
+    PARTIAL
 }
 
-@Serializable
 enum class PaymentMethod {
-    @SerialName("cash") CASH,
-    @SerialName("upi") UPI,
-    @SerialName("online") ONLINE
+    CASH,
+    UPI,
+    ONLINE;
+
+    companion object {
+        fun fromText(value: String): PaymentMethod =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: CASH
+    }
 }
 
 data class DashboardStats(

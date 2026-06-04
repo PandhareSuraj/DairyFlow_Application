@@ -15,10 +15,10 @@ class DashboardViewModel(private val repository: DashboardRepository) : ViewMode
     val state: StateFlow<UiState<DashboardStats>> = _state.asStateFlow()
 
     fun load() = viewModelScope.launch {
-        _state.value = UiState(isLoading = true)
+        _state.value = UiState(isLoading = true, data = _state.value.data)
         _state.value = runCatching { repository.loadStats(todayIsoDate()) }.fold(
             onSuccess = { UiState(data = it) },
-            onFailure = { UiState(error = it.message ?: "Unable to load dashboard.") }
+            onFailure = { UiState(data = _state.value.data, error = it.message ?: "Unable to load dashboard.") }
         )
     }
 }
