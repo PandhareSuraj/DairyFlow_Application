@@ -33,6 +33,11 @@ fun secureConfigValue(key: String): String {
         ?: "")
 }
 
+fun supabaseKeyConfig(): String =
+    secureConfigValue("SUPABASE_KEY").ifBlank {
+        secureConfigValue("SUPABASE_PUBLISHABLE_KEY")
+    }
+
 android {
     namespace = "com.example.dairyflow"
     compileSdk {
@@ -50,12 +55,20 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"${secureConfigValue("SUPABASE_URL")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secureConfigValue("SUPABASE_ANON_KEY")}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${supabaseKeyConfig()}\"")
+        buildConfigField("String", "TEST_ADMIN_PHONE", "\"8275838256\"")
+        buildConfigField("String", "TEST_ADMIN_OTP", "\"123456\"")
+        buildConfigField("String", "TEST_ADMIN_EMAIL", "\"dairyflow.admin.8275838256@test.local\"")
+        buildConfigField("String", "TEST_ADMIN_PASSWORD", "\"DairyFlowTest@8275838256\"")
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "TEST_ADMIN_PHONE", "\"\"")
+            buildConfigField("String", "TEST_ADMIN_OTP", "\"\"")
+            buildConfigField("String", "TEST_ADMIN_EMAIL", "\"\"")
+            buildConfigField("String", "TEST_ADMIN_PASSWORD", "\"\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -77,6 +90,8 @@ dependencies {
     implementation(platform(libs.supabase.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -86,6 +101,11 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.android)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.zxing.core)
     implementation(libs.supabase.auth)
     implementation(libs.supabase.postgrest)
     testImplementation(libs.junit)

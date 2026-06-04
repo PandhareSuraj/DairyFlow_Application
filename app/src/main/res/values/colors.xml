@@ -7,4 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="dairy_blue_sea">#0F4C81</color>
+    <color name="dairy_cream">#FAF6EE</color>
+    <color name="dairy_deep_navy">#102A43</color>
+    <color name="dairy_gold">#CA8A04</color>
+    <color name="dairy_green">#16A34A</color>
+    <color name="dairy_violet">#7C3AED</color>
 </resources>

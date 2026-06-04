@@ -11,10 +11,14 @@ class DairyFlowViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when (modelClass) {
             AuthViewModel::class.java -> AuthViewModel(container.authRepository)
+            QrLoginViewModel::class.java -> QrLoginViewModel(container.qrLoginRepository)
             AdminViewModel::class.java -> AdminViewModel(container.adminRepository)
             DashboardViewModel::class.java -> DashboardViewModel(container.dashboardRepository)
-            CustomersViewModel::class.java -> CustomersViewModel(container.customerRepository)
+            CustomersViewModel::class.java -> CustomersViewModel(container.customerRepository, container.routeRepository)
+            ProductViewModel::class.java -> ProductViewModel(container.productRepository)
             DeliveryViewModel::class.java -> DeliveryViewModel(container.deliveryRepository, container.customerRepository)
+            DeliveryBoyViewModel::class.java -> DeliveryBoyViewModel(container.deliveryBoyRepository)
+            QrLoginViewModel::class.java -> QrLoginViewModel(container.qrLoginRepository)
             BillingViewModel::class.java -> BillingViewModel(container.billingRepository, container.customerRepository)
             PaymentsViewModel::class.java -> PaymentsViewModel(container.paymentRepository, container.billingRepository)
             ReportsViewModel::class.java -> ReportsViewModel(container.reportsRepository)

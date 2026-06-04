@@ -24,7 +24,7 @@ class ReportsViewModel(private val repository: ReportsRepository) : ViewModel() 
     val state: StateFlow<UiState<ReportsScreenState>> = _state.asStateFlow()
 
     fun load(date: String = todayIsoDate(), month: Int = currentMonth(), year: Int = currentYear()) = viewModelScope.launch {
-        _state.value = UiState(isLoading = true)
+        _state.value = UiState(isLoading = true, data = _state.value.data)
         _state.value = runCatching {
             ReportsScreenState(
                 deliveries = repository.dailyDeliveryReport(date),
@@ -34,7 +34,7 @@ class ReportsViewModel(private val repository: ReportsRepository) : ViewModel() 
             )
         }.fold(
             onSuccess = { UiState(data = it) },
-            onFailure = { UiState(error = it.message ?: "Unable to load reports.") }
+            onFailure = { UiState(data = _state.value.data, error = it.message ?: "Unable to load reports.") }
         )
     }
 }

@@ -4,10 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -21,90 +24,147 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.dairyflow.data.model.Customer
-import com.example.dairyflow.ui.common.ActionRow
+import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
 import com.example.dairyflow.ui.common.LoadingState
-import com.example.dairyflow.ui.common.PaddedList
-import com.example.dairyflow.ui.common.ScreenColumn
+import com.example.dairyflow.ui.common.DairyDashboardHeader
+import com.example.dairyflow.ui.common.OptionDropdown
+import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.common.SectionTitle
 import com.example.dairyflow.ui.viewmodel.CustomersViewModel
 
 @Composable
 fun CustomersScreen(viewModel: CustomersViewModel, onOpenDetail: (String) -> Unit) {
     val state by viewModel.state.collectAsState()
+    val routes by viewModel.routes.collectAsState()
     var editing by remember { mutableStateOf<Customer?>(null) }
+    var showForm by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedRouteId by remember(routes.data) { mutableStateOf("") }
     LaunchedEffect(Unit) { viewModel.load() }
-
-    ScreenColumn("Customers") {
-        CustomerForm(editing, onSave = {
-            viewModel.save(it)
-            editing = null
-        }, onClear = { editing = null })
-
-        SectionTitle("Customer list")
-        when {
-            state.isLoading -> LoadingState()
-            state.error != null -> ErrorState(state.error ?: "Error", viewModel::load)
-            state.data.isNullOrEmpty() -> EmptyState("No customers yet. Add your first customer above.")
-            else -> PaddedList {
-                items(state.data.orEmpty(), key = { it.id ?: it.name }) { customer ->
-                    CustomerCard(customer, onOpen = { customer.id?.let(onOpenDetail) }, onEdit = { editing = customer }, onDelete = {
-                        customer.id?.let(viewModel::delete)
-                    })
+    val routeRows = routes.data.orEmpty()
+    val routeOptions = remember(routeRows) { listOf("All routes", "No route") + routeRows.map { it.displayName } }
+    val selectedRouteName = routeRows.firstOrNull { it.id == selectedRouteId }?.displayName
+        ?: if (selectedRouteId == NO_ROUTE_FILTER) "No route" else "All routes"
+    val filteredCustomers = remember(state.data, searchQuery, selectedRouteId, routeRows) {
+        state.data.orEmpty()
+            .filter { customer ->
+                val query = searchQuery.trim()
+                query.isBlank() ||
+                    customer.name.contains(query, ignoreCase = true) ||
+                    customer.fullName.orEmpty().contains(query, ignoreCase = true) ||
+                    customer.phone.orEmpty().contains(query, ignoreCase = true) ||
+                    customer.mobileNumber.orEmpty().contains(query, ignoreCase = true)
+            }
+            .filter { customer ->
+                when (selectedRouteId) {
+                    "" -> true
+                    NO_ROUTE_FILTER -> customer.routeId.isNullOrBlank()
+                    else -> customer.routeId == selectedRouteId
                 }
             }
-        }
     }
-}
 
-@Composable
-private fun CustomerForm(editing: Customer?, onSave: (Customer) -> Unit, onClear: () -> Unit) {
-    var name by remember(editing?.id) { mutableStateOf(editing?.name.orEmpty()) }
-    var phone by remember(editing?.id) { mutableStateOf(editing?.phone.orEmpty()) }
-    var address by remember(editing?.id) { mutableStateOf(editing?.address.orEmpty()) }
-    var rate by remember(editing?.id) { mutableStateOf(editing?.milkRate?.toString().orEmpty()) }
-    var quantity by remember(editing?.id) { mutableStateOf(editing?.dailyQuantity?.toString().orEmpty()) }
-
-    Card {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (editing == null) "Add customer" else "Edit customer")
-            OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(phone, { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(address, { address = it }, label = { Text("Address") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(rate, { rate = it }, label = { Text("Milk rate") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(quantity, { quantity = it }, label = { Text("Daily qty") }, modifier = Modifier.weight(1f))
-            }
-            ActionRow(
-                primary = if (editing == null) "Add" else "Update",
-                onPrimary = {
-                    onSave(
-                        Customer(
-                            id = editing?.id,
-                            profileId = editing?.profileId,
-                            routeId = editing?.routeId,
-                            name = name,
-                            phone = phone.ifBlank { null },
-                            address = address.ifBlank { null },
-                            milkRate = rate.toDoubleOrNull() ?: 0.0,
-                            dailyQuantity = quantity.toDoubleOrNull() ?: 0.0
-                        )
-                    )
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            DairyDashboardHeader(title = "Customers", subtitle = "Manage daily operations")
+        }
+        item {
+            Button(
+                onClick = {
+                    editing = null
+                    showForm = true
                 },
-                secondary = "Clear",
-                onSecondary = onClear
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Add Customer")
+            }
+        }
+        if (showForm || editing != null) {
+            item {
+                CustomerFormCard(editing, routes = routeRows, onSave = {
+                    viewModel.save(it)
+                    editing = null
+                    showForm = false
+                }, onClear = {
+                    editing = null
+                    showForm = false
+                })
+            }
+        }
+        item {
+            CustomerFilters(
+                searchQuery = searchQuery,
+                onSearchQuery = { searchQuery = it },
+                selectedRouteName = selectedRouteName,
+                routeOptions = routeOptions,
+                onRouteSelected = { selected ->
+                    selectedRouteId = when (selected) {
+                        "All routes" -> ""
+                        "No route" -> NO_ROUTE_FILTER
+                        else -> routeRows.firstOrNull { it.displayName == selected }?.id.orEmpty()
+                    }
+                }
             )
         }
+        item { SectionTitle("Customer list") }
+        if (state.isLoading && state.data != null) {
+            item { RefreshingState("Refreshing customers...") }
+        }
+        when {
+            state.isLoading && state.data == null -> item { LoadingState("Loading customers...") }
+            state.error != null -> item { ErrorState(state.error ?: "Error", viewModel::load) }
+            state.data.isNullOrEmpty() -> item { EmptyState("No customers yet. Add your first customer above.") }
+            filteredCustomers.isEmpty() -> item { EmptyState("No customers match this search or route.") }
+            else -> items(filteredCustomers, key = { it.id ?: it.name }) { customer ->
+                CustomerCard(customer, routeName = routeRows.firstOrNull { it.id == customer.routeId }?.displayName, onOpen = { customer.id?.let(onOpenDetail) }, onEdit = {
+                    editing = customer
+                    showForm = true
+                }, onDelete = {
+                    customer.id?.let(viewModel::delete)
+                })
+            }
+        }
     }
 }
 
 @Composable
-private fun CustomerCard(customer: Customer, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun CustomerFilters(
+    searchQuery: String,
+    onSearchQuery: (String) -> Unit,
+    selectedRouteName: String,
+    routeOptions: List<String>,
+    onRouteSelected: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQuery,
+            label = { Text("Search by name or mobile") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OptionDropdown(
+            label = "Route filter",
+            value = selectedRouteName,
+            options = routeOptions,
+            onSelected = onRouteSelected,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun CustomerCard(customer: Customer, routeName: String?, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(customer.name)
             Text("${customer.phone.orEmpty()}  ${customer.address.orEmpty()}")
+            Text("Route: ${routeName ?: "No route"}")
             Text("Rate Rs ${customer.milkRate} / L, Daily ${customer.dailyQuantity} L")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onEdit) { Text("Edit") }
@@ -114,3 +174,5 @@ private fun CustomerCard(customer: Customer, onOpen: () -> Unit, onEdit: () -> U
         }
     }
 }
+
+private const val NO_ROUTE_FILTER = "__NO_ROUTE__"

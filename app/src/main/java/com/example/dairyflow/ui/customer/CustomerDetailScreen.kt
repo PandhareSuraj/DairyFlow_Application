@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
 import com.example.dairyflow.ui.common.LoadingState
+import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.common.ScreenColumn
 import com.example.dairyflow.ui.viewmodel.CustomersViewModel
 
@@ -25,8 +26,9 @@ fun CustomerDetailScreen(customerId: String, viewModel: CustomersViewModel, onBa
     val customer = state.data?.firstOrNull { it.id == customerId }
 
     ScreenColumn("Customer detail") {
+        if (state.isLoading && state.data != null) RefreshingState("Refreshing customer...")
         when {
-            state.isLoading -> LoadingState()
+            state.isLoading && state.data == null -> LoadingState("Loading customer...")
             state.error != null -> ErrorState(state.error ?: "Error", viewModel::load)
             customer == null -> EmptyState("Customer not found.")
             else -> Card {

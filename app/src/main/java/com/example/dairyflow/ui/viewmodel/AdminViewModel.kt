@@ -9,6 +9,7 @@ import com.example.dairyflow.data.model.AdminDelivery
 import com.example.dairyflow.data.model.AdminDeliveryBoy
 import com.example.dairyflow.data.model.AdminPayment
 import com.example.dairyflow.data.model.AdminProfile
+import com.example.dairyflow.data.model.AdminRoute
 import com.example.dairyflow.data.model.Invoice
 import com.example.dairyflow.data.model.InvoiceGenerationResult
 import com.example.dairyflow.data.model.Product
@@ -52,6 +53,8 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
     fun deleteProduct(id: String) = runAndReload { repository.deleteProduct(id) }
     fun saveCustomer(customer: AdminCustomer) = runAndReload { repository.upsertCustomer(customer) }
     fun deleteCustomer(id: String) = runAndReload { repository.deleteCustomer(id) }
+    fun saveRoute(route: AdminRoute) = runAndReload { repository.upsertRoute(route) }
+    fun deleteRoute(id: String) = runAndReload { repository.deleteRoute(id) }
     fun saveDeliveryBoy(deliveryBoy: AdminDeliveryBoy) = runAndReload { repository.upsertDeliveryBoy(deliveryBoy) }
     fun deleteDeliveryBoy(id: String) = runAndReload { repository.deleteDeliveryBoy(id) }
     fun saveProfile(profile: AdminProfile) = runAndReload { repository.upsertProfile(profile) }
@@ -74,8 +77,14 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
 
     private fun runAndReload(block: suspend () -> Unit) = viewModelScope.launch {
         _dataState.value = UiState(isLoading = true, data = _dataState.value.data)
-        runCatching { block() }
-            .onFailure { _dataState.value = UiState(data = _dataState.value.data, error = it.message ?: "Operation failed.") }
-        load()
+        runCatching { block() }.fold(
+            onSuccess = { load() },
+            onFailure = {
+                _dataState.value = UiState(
+                    data = _dataState.value.data,
+                    error = it.message ?: "Operation failed."
+                )
+            }
+        )
     }
 }
