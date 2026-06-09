@@ -14,3 +14,7 @@
 .cxx
 local.properties
 .env
+/node_modules/
+/supabase/.temp/
+/.kotlin/
+/.codex-build-stale-*/

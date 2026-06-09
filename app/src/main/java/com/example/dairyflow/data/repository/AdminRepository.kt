@@ -1,6 +1,7 @@
 package com.example.dairyflow.data.repository
 
 import android.util.Log
+import com.example.dairyflow.core.SupabaseModule
 import com.example.dairyflow.core.SupabaseTables
 import com.example.dairyflow.data.model.AdminCustomer
 import com.example.dairyflow.data.model.AdminDashboardStats
@@ -37,16 +38,41 @@ import com.example.dairyflow.data.model.ProfileRow
 import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.data.model.RouteUpsert
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 class AdminRepository(private val supabase: SupabaseClient) {
+    private val client = HttpClient(Android) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 30_000
+            connectTimeoutMillis = 15_000
+            socketTimeoutMillis = 30_000
+        }
+    }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
     suspend fun dashboardStats(today: String, month: Int, year: Int): AdminDashboardStats {
         val data = loadAdminData(today)
         val monthKey = "%04d-%02d".format(year, month)
@@ -293,17 +319,53 @@ class AdminRepository(private val supabase: SupabaseClient) {
         if (email.isBlank()) {
             throw IllegalStateException("Delivery boy email / login ID is required for QR login.")
         }
-        supabase.postgrest.rpc(
-            "admin_upsert_delivery_boy_account",
-            UpsertDeliveryBoyAccountParams(
-                deliveryBoyId = deliveryBoy.id,
-                fullName = fullName,
-                email = email,
-                phone = deliveryBoy.mobileNumber,
-                assignedRouteId = deliveryBoy.assignedRouteId,
-                active = deliveryBoy.isActive
+        val session = supabase.auth.currentSessionOrNull()
+            ?: throw IllegalStateException("Admin login is required. Please sign in again.")
+        val response = client.post("${SupabaseModule.functionsUrl}/create-delivery-boy-account") {
+            contentType(ContentType.Application.Json)
+            header("apikey", SupabaseModule.anonKey)
+            header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+            setBody(
+                json.encodeToString(
+                    CreateDeliveryBoyAccountRequest.serializer(),
+                    CreateDeliveryBoyAccountRequest(
+                        deliveryBoyId = deliveryBoy.id,
+                        fullName = fullName,
+                        email = email,
+                        phone = deliveryBoy.mobileNumber,
+                        assignedRouteId = deliveryBoy.assignedRouteId,
+                        active = deliveryBoy.isActive
+                    )
+                )
             )
-        ).decodeSingle<UpsertDeliveryBoyAccountResponse>()
+        }
+        val body = response.bodyAsText()
+        val result = runCatching {
+            json.decodeFromString(CreateDeliveryBoyAccountResponse.serializer(), body)
+        }.getOrNull()
+        if (!response.status.isSuccess() || result?.success == false) {
+            val message = result?.message ?: body
+            if (response.status.value == 404 || message.contains("Requested function was not found", ignoreCase = true)) {
+                supabase.postgrest.rpc(
+                    "admin_upsert_delivery_boy_account",
+                    UpsertDeliveryBoyAccountParams(
+                        deliveryBoyId = deliveryBoy.id,
+                        fullName = fullName,
+                        email = email,
+                        phone = deliveryBoy.mobileNumber,
+                        assignedRouteId = deliveryBoy.assignedRouteId,
+                        active = deliveryBoy.isActive
+                    )
+                ).decodeSingle<UpsertDeliveryBoyAccountResponse>()
+                return
+            }
+            throw IllegalStateException(
+                message.ifBlank { "Unable to create delivery boy account." }
+            )
+        }
+        if (result?.success != true) {
+            throw IllegalStateException("Unable to create delivery boy account.")
+        }
     }
 
     suspend fun deleteDeliveryBoy(id: String) {
@@ -838,6 +900,22 @@ class AdminRepository(private val supabase: SupabaseClient) {
 private data class GenerateTodayDeliveriesParams(
     @SerialName("p_delivery_date") val deliveryDate: String,
     @SerialName("p_route_id") val routeId: String? = null
+)
+
+@Serializable
+private data class CreateDeliveryBoyAccountRequest(
+    @SerialName("delivery_boy_id") val deliveryBoyId: String? = null,
+    @SerialName("full_name") val fullName: String,
+    val email: String,
+    val phone: String? = null,
+    @SerialName("assigned_route_id") val assignedRouteId: String? = null,
+    val active: Boolean = true
+)
+
+@Serializable
+private data class CreateDeliveryBoyAccountResponse(
+    val success: Boolean = false,
+    val message: String? = null
 )
 
 @Serializable

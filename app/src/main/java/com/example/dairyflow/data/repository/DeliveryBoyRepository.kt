@@ -6,6 +6,7 @@ import com.example.dairyflow.data.model.DeliveryBoy
 import com.example.dairyflow.data.model.DeliveryBoyRow
 import com.example.dairyflow.data.model.DeliveryBoyUpsert
 import com.example.dairyflow.data.model.DeliveryRow
+import com.example.dairyflow.data.model.ProductRow
 import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.data.model.TodayDeliveryViewRow
 import io.github.jan.supabase.SupabaseClient
@@ -105,6 +106,18 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
         }
     }
 
+    suspend fun getProductRowsForCurrentDeliveryBoy(): List<ProductRow> {
+        val context = requireCurrentDeliveryBoyContext("select products for delivery boy")
+        return loggedSupabaseCall("DeliveryBoySaveError", SupabaseTables.PRODUCTS, "select products for delivery boy") {
+            supabase.from(SupabaseTables.PRODUCTS).select {
+                filter {
+                    eq("admin_id", context.adminId)
+                    eq("status", "active")
+                }
+            }.decodeList<ProductRow>()
+        }
+    }
+
     suspend fun getAssignedRouteForCurrentDeliveryBoy(): RouteRow? {
         val context = requireCurrentDeliveryBoyContext("select assigned route")
         val routeId = context.deliveryBoy.routeId ?: return null
@@ -142,7 +155,7 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
                     deliveryStatus = "Delivered",
                     skipReason = null
                 )
-            ).decodeSingle<DeliveryRow>()
+            ).decodeAs<DeliveryRow>()
         }
 
     suspend fun skipTodayDelivery(deliveryId: String, reason: String): DeliveryRow =
@@ -155,7 +168,42 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
                     deliveryStatus = "Skipped",
                     skipReason = reason.ifBlank { "Skipped by delivery boy" }
                 )
-            ).decodeSingle<DeliveryRow>()
+            ).decodeAs<DeliveryRow>()
+        }
+
+    suspend fun updateTodayDeliveryDetails(deliveryId: String, productId: String?, quantity: Double): DeliveryRow =
+        loggedSupabaseCall("DeliveryBoySaveError", SupabaseTables.DELIVERIES, "update today delivery details") {
+            require(quantity > 0.0) { "Quantity must be positive." }
+            requireCurrentDeliveryBoyContext("update today delivery details")
+            supabase.postgrest.rpc(
+                "delivery_boy_update_today_delivery",
+                DeliveryBoyUpdateTodayDeliveryParams(
+                    deliveryId = deliveryId,
+                    productId = productId?.takeIf { it.isNotBlank() },
+                    quantity = quantity
+                )
+            ).decodeAs<DeliveryRow>()
+        }
+
+    suspend fun addExtraTodayProduct(deliveryId: String, productId: String, quantity: Double): DeliveryRow =
+        loggedSupabaseCall("DeliveryBoySaveError", SupabaseTables.DELIVERIES, "add extra today product") {
+            require(productId.isNotBlank()) { "Product is required." }
+            require(quantity > 0.0) { "Quantity must be positive." }
+            requireCurrentDeliveryBoyContext("add extra today product")
+            supabase.postgrest.rpc(
+                "delivery_boy_add_extra_today_product",
+                DeliveryBoyAddExtraTodayProductParams(
+                    deliveryId = deliveryId,
+                    productId = productId,
+                    quantity = quantity
+                )
+            ).decodeAs<DeliveryRow>()
+        }
+
+    suspend fun completeTodayDeliveries(): Int =
+        loggedSupabaseCall("DeliveryBoySaveError", SupabaseTables.DELIVERIES, "complete today deliveries") {
+            requireCurrentDeliveryBoyContext("complete today deliveries")
+            supabase.postgrest.rpc("delivery_boy_complete_today_deliveries").decodeAs<Int>()
         }
 
     suspend fun markTodayPaymentStatus(deliveryId: String, paid: Boolean): DeliveryRow =
@@ -167,7 +215,7 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
                     deliveryId = deliveryId,
                     paymentStatus = if (paid) "Paid" else "Unpaid"
                 )
-            ).decodeSingle<DeliveryRow>()
+            ).decodeAs<DeliveryRow>()
         }
 
     private suspend fun requireCurrentDeliveryBoyContext(operation: String): DeliveryBoyContext {
@@ -216,8 +264,11 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
             unitPrice = unitPrice,
             totalAmount = totalAmount,
             deliveryStatus = deliveryStatus,
+            deliveryBoyStatus = deliveryBoyStatus,
             paymentStatus = paymentStatus,
-            skipReason = skipReason
+            skipReason = skipReason,
+            deliveryBoySkipReason = deliveryBoySkipReason,
+            deliveryCompletedAt = deliveryCompletedAt
         )
 
     private data class DeliveryBoyContext(
@@ -231,5 +282,14 @@ private data class DeliveryBoyUpdateTodayDeliveryParams(
     @SerialName("p_delivery_id") val deliveryId: String,
     @SerialName("p_delivery_status") val deliveryStatus: String? = null,
     @SerialName("p_payment_status") val paymentStatus: String? = null,
-    @SerialName("p_skip_reason") val skipReason: String? = null
+    @SerialName("p_skip_reason") val skipReason: String? = null,
+    @SerialName("p_product_id") val productId: String? = null,
+    @SerialName("p_quantity") val quantity: Double? = null
+)
+
+@Serializable
+private data class DeliveryBoyAddExtraTodayProductParams(
+    @SerialName("p_delivery_id") val deliveryId: String,
+    @SerialName("p_product_id") val productId: String,
+    @SerialName("p_quantity") val quantity: Double
 )
