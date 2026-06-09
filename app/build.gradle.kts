@@ -60,6 +60,11 @@ android {
         buildConfigField("String", "TEST_ADMIN_OTP", "\"123456\"")
         buildConfigField("String", "TEST_ADMIN_EMAIL", "\"dairyflow.admin.8275838256@test.local\"")
         buildConfigField("String", "TEST_ADMIN_PASSWORD", "\"DairyFlowTest@8275838256\"")
+        buildConfigField(
+            "String",
+            "TEST_ADMIN_LOGINS",
+            "\"8275838256|123456|dairyflow.admin.8275838256@test.local|DairyFlowTest@8275838256;9607444499|123456|omsai11@dairy.com|DairyFlowTest@9607444499\""
+        )
     }
 
     buildTypes {
@@ -69,6 +74,7 @@ android {
             buildConfigField("String", "TEST_ADMIN_OTP", "\"\"")
             buildConfigField("String", "TEST_ADMIN_EMAIL", "\"\"")
             buildConfigField("String", "TEST_ADMIN_PASSWORD", "\"\"")
+            buildConfigField("String", "TEST_ADMIN_LOGINS", "\"\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

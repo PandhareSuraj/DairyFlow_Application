@@ -16,7 +16,7 @@ class DairyFlowViewModelFactory(
             DashboardViewModel::class.java -> DashboardViewModel(container.dashboardRepository)
             CustomersViewModel::class.java -> CustomersViewModel(container.customerRepository, container.routeRepository)
             ProductViewModel::class.java -> ProductViewModel(container.productRepository)
-            DeliveryViewModel::class.java -> DeliveryViewModel(container.deliveryRepository, container.customerRepository)
+            DeliveryViewModel::class.java -> DeliveryViewModel(container.deliveryRepository, container.customerRepository, container.routeRepository)
             DeliveryBoyViewModel::class.java -> DeliveryBoyViewModel(container.deliveryBoyRepository)
             QrLoginViewModel::class.java -> QrLoginViewModel(container.qrLoginRepository)
             BillingViewModel::class.java -> BillingViewModel(container.billingRepository, container.customerRepository)

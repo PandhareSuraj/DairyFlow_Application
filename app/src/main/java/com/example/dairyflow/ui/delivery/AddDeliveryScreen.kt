@@ -45,7 +45,7 @@ fun AddDeliveryScreen(viewModel: DeliveryViewModel, onSaved: () -> Unit, onBack:
     var deliveryTime by remember { mutableStateOf("Morning") }
     var quantity by remember { mutableStateOf("") }
     var unitPrice by remember(products) { mutableStateOf(products.firstOrNull()?.price?.takeIf { it > 0.0 }?.toString().orEmpty()) }
-    var deliveryStatus by remember { mutableStateOf("Delivered") }
+    var deliveryStatus by remember { mutableStateOf("Pending") }
     var paymentStatus by remember { mutableStateOf("Unpaid") }
     var notes by remember { mutableStateOf("") }
     val errors = remember { mutableStateMapOf<String, String>() }
@@ -113,7 +113,7 @@ fun AddDeliveryScreen(viewModel: DeliveryViewModel, onSaved: () -> Unit, onBack:
                     )
                 }
                 Text("Total amount: Rs %.2f".format(total), style = MaterialTheme.typography.titleMedium)
-                OptionDropdown("Delivery status", deliveryStatus, listOf("Delivered", "Pending", "Skipped"), { deliveryStatus = it }, Modifier.fillMaxWidth())
+                OptionDropdown("Delivery status", deliveryStatus, listOf("Pending", "Delivered", "Skipped"), { deliveryStatus = it }, Modifier.fillMaxWidth())
                 OptionDropdown("Payment status", paymentStatus, listOf("Paid", "Unpaid"), { paymentStatus = it }, Modifier.fillMaxWidth())
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes optional") }, modifier = Modifier.fillMaxWidth())
             }

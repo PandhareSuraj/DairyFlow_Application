@@ -31,6 +31,7 @@ import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
 import com.example.dairyflow.ui.common.LoadingState
 import com.example.dairyflow.ui.common.DairyDashboardHeader
+import com.example.dairyflow.ui.common.OptionDropdown
 import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.viewmodel.DeliveryViewModel
 import com.example.dairyflow.ui.viewmodel.todayIsoDate
@@ -40,6 +41,7 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
     val state by viewModel.state.collectAsState()
     var selectedDate by remember { mutableStateOf(todayIsoDate()) }
     var filter by remember { mutableStateOf("All") }
+    var routeFilter by remember { mutableStateOf("All routes") }
     var deleteTarget by remember { mutableStateOf<DeliveryRow?>(null) }
     LaunchedEffect(Unit) { viewModel.load(selectedDate) }
 
@@ -79,6 +81,18 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
                 }
             }
         }
+        item {
+            val routes = state.data?.routeRows.orEmpty()
+            val routeOptions = listOf("All routes", "No route") + routes.map { it.displayName }
+            if (routeFilter !in routeOptions) routeFilter = "All routes"
+            OptionDropdown(
+                label = "Route",
+                value = routeFilter,
+                options = routeOptions,
+                onSelected = { routeFilter = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         if (state.isLoading && state.data != null) {
             item { RefreshingState("Refreshing deliveries...") }
         }
@@ -88,13 +102,25 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
             state.data?.deliveryRows.isNullOrEmpty() -> item { EmptyState("No deliveries for this date.", "Refresh", { viewModel.load(selectedDate) }) }
             else -> {
                 val data = state.data
-                val deliveries = data?.deliveryRows.orEmpty().filter { filter == "All" || it.deliveryStatus == filter }
+                val customersById = data?.customerRows.orEmpty().associateBy { it.id }
+                val selectedRouteId = data?.routeRows.orEmpty().firstOrNull { it.displayName == routeFilter }?.id
+                val deliveries = data?.deliveryRows.orEmpty().filter { delivery ->
+                    val customer = customersById[delivery.customerId]
+                    val matchesStatus = filter == "All" || delivery.deliveryStatus == filter
+                    val matchesRoute = when (routeFilter) {
+                        "All routes" -> true
+                        "No route" -> customer?.routeId.isNullOrBlank()
+                        else -> customer?.routeId == selectedRouteId
+                    }
+                    matchesStatus && matchesRoute
+                }
                 if (deliveries.isEmpty()) {
-                    item { EmptyState("No $filter deliveries for ${data?.selectedDate ?: selectedDate}.") }
+                    item { EmptyState("No $filter deliveries for ${data?.selectedDate ?: selectedDate} in $routeFilter.") }
                 }
                 items(deliveries, key = { it.id ?: "${it.customerId}-${it.deliveryDate}" }) { delivery ->
-                    val customerName = data?.customerRows?.firstOrNull { it.id == delivery.customerId }?.displayName ?: "Customer"
-                    val customer = data?.customerRows?.firstOrNull { it.id == delivery.customerId }
+                    val customerName = customersById[delivery.customerId]?.displayName ?: "Customer"
+                    val customer = customersById[delivery.customerId]
+                    val routeName = data?.routeRows.orEmpty().firstOrNull { it.id == customer?.routeId }?.displayName
                     val productName = data?.productRows?.firstOrNull { it.id == delivery.productId }?.name
                         ?: customer?.milkType
                         ?: "Product"
@@ -102,7 +128,7 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
                         delivery = delivery,
                         customerName = customerName,
                         productName = productName,
-                        routeLabel = customer?.routeId?.let { "Route assigned" } ?: "No route",
+                        routeLabel = routeName ?: "No route",
                         onDelivered = { delivery.id?.let { viewModel.updateDeliveryStatus(it, "Delivered") } },
                         onSkipped = { delivery.id?.let { viewModel.updateDeliveryStatus(it, "Skipped") } },
                         onDelete = { deleteTarget = delivery }

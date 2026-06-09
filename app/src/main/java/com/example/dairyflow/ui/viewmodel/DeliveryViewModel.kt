@@ -9,9 +9,11 @@ import com.example.dairyflow.data.model.DeliveryRecord
 import com.example.dairyflow.data.model.DeliveryRow
 import com.example.dairyflow.data.model.Product
 import com.example.dairyflow.data.model.ProductRow
+import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.data.model.UiState
 import com.example.dairyflow.data.repository.CustomerRepository
 import com.example.dairyflow.data.repository.DeliveryRepository
+import com.example.dairyflow.data.repository.RouteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,7 @@ data class DeliveryScreenState(
     val deliveries: List<DeliveryRecord> = emptyList(),
     val customerRows: List<CustomerRow> = emptyList(),
     val productRows: List<ProductRow> = emptyList(),
+    val routeRows: List<RouteRow> = emptyList(),
     val deliveryRows: List<DeliveryRow> = emptyList(),
     val selectedDate: String = todayIsoDate(),
     val autoCreatedCount: Int = 0
@@ -30,7 +33,8 @@ data class DeliveryScreenState(
 
 class DeliveryViewModel(
     private val deliveryRepository: DeliveryRepository,
-    private val customerRepository: CustomerRepository
+    private val customerRepository: CustomerRepository,
+    private val routeRepository: RouteRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(UiState<DeliveryScreenState>())
     val state: StateFlow<UiState<DeliveryScreenState>> = _state.asStateFlow()
@@ -45,6 +49,7 @@ class DeliveryViewModel(
                 deliveries = deliveryRepository.getDeliveriesForDate(date),
                 customerRows = customerRepository.getCustomerRows(),
                 productRows = deliveryRepository.getProductRows(),
+                routeRows = routeRepository.getRouteRows(),
                 deliveryRows = deliveryRepository.getDeliveryRows(date),
                 selectedDate = date,
                 autoCreatedCount = createdCount

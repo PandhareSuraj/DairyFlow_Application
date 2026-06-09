@@ -6,6 +6,7 @@ import com.example.dairyflow.data.model.DeliveryShift
 import com.example.dairyflow.data.model.DeliveryStatus
 import com.example.dairyflow.data.model.DeliveryUpsert
 import com.example.dairyflow.data.model.CustomerRow
+import com.example.dairyflow.data.model.DeliveryBoyRow
 import com.example.dairyflow.data.model.Product
 import com.example.dairyflow.data.model.ProductRow
 import com.example.dairyflow.core.SupabaseTables
@@ -71,6 +72,14 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
         }
         val products: List<ProductRow> = getProductRows().filter { it.status.equals("active", ignoreCase = true) }
         if (products.isEmpty()) return 0
+        val deliveryBoys: List<DeliveryBoyRow> = loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERY_BOYS, "select delivery boys for daily deliveries") {
+            supabase.from(SupabaseTables.DELIVERY_BOYS).select {
+                filter {
+                    eq("admin_id", adminId)
+                    eq("status", "active")
+                }
+            }.decodeList<DeliveryBoyRow>()
+        }
         val existingKeys: MutableSet<String> = getDeliveryRows(date)
             .map { "${it.customerId}|${it.deliveryTime.lowercase(Locale.US)}" }
             .toMutableSet()
@@ -90,6 +99,7 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
                         customerId = customerId,
                         productId = requireNotNull(product.id) { "Product is required." },
                         routeId = customer.routeId,
+                        deliveryBoyId = deliveryBoys.firstOrNull { it.routeId == customer.routeId }?.id,
                         deliveryDate = date,
                         deliveryTime = deliveryTime,
                         quantity = quantity,

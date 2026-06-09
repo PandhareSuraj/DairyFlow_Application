@@ -68,7 +68,7 @@ class AuthRepository(
         otpRepository.verifyWhatsAppOtp(phone, otp)
 
     suspend fun sendAdminWhatsAppOtp(phone: String): SendOtpResponse =
-        if (isTestAdminPhone(phone)) {
+        if (testAdminLoginFor(phone) != null) {
             SendOtpResponse(
                 success = true,
                 message = "Testing OTP ready.",
@@ -80,8 +80,8 @@ class AuthRepository(
         }
 
     suspend fun verifyAdminWhatsAppLogin(phone: String, otp: String): ProfileDetails {
-        if (isTestAdminPhone(phone) && otp == BuildConfig.TEST_ADMIN_OTP) {
-            return signInAdmin(BuildConfig.TEST_ADMIN_EMAIL, BuildConfig.TEST_ADMIN_PASSWORD)
+        testAdminLoginFor(phone)?.takeIf { it.otp == otp }?.let { login ->
+            return signInAdmin(login.email, login.password)
         }
         val result = otpRepository.verifyAdminWhatsAppLogin(phone, otp)
         importSessionOrThrow(result.accessToken, result.refreshToken, "Admin OTP login did not return a session.")
@@ -357,10 +357,31 @@ class AuthRepository(
         }
     }
 
-    private fun isTestAdminPhone(value: String): Boolean =
-        BuildConfig.DEBUG &&
-            BuildConfig.TEST_ADMIN_PHONE.isNotBlank() &&
-            normalizePhone(value) == normalizePhone(BuildConfig.TEST_ADMIN_PHONE)
+    private fun testAdminLoginFor(phone: String): TestAdminLogin? {
+        if (!BuildConfig.DEBUG) return null
+        val normalizedPhone = normalizePhone(phone)
+        return configuredTestAdminLogins()
+            .firstOrNull { normalizePhone(it.phone) == normalizedPhone }
+    }
+
+    private fun configuredTestAdminLogins(): List<TestAdminLogin> =
+        BuildConfig.TEST_ADMIN_LOGINS
+            .split(";")
+            .mapNotNull { rawLogin ->
+                val parts = rawLogin.split("|")
+                if (parts.size != 4) return@mapNotNull null
+                TestAdminLogin(
+                    phone = parts[0],
+                    otp = parts[1],
+                    email = parts[2],
+                    password = parts[3]
+                ).takeIf {
+                    it.phone.isNotBlank() &&
+                        it.otp.isNotBlank() &&
+                        it.email.isNotBlank() &&
+                        it.password.isNotBlank()
+                }
+            }
 
     private fun isTestDeliveryQr(qrText: String): Boolean {
         if (!BuildConfig.DEBUG) return false
@@ -408,6 +429,13 @@ class AuthRepository(
         )
     }
 }
+
+private data class TestAdminLogin(
+    val phone: String,
+    val otp: String,
+    val email: String,
+    val password: String
+)
 
 sealed interface AuthCallbackResult {
     data object SignedIn : AuthCallbackResult
