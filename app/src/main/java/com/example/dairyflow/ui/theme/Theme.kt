@@ -6,8 +6,10 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.dairyflow.data.repository.AppThemePreference
 
 private val DarkColorScheme = darkColorScheme(
     primary = DairyBlueSea,
@@ -68,6 +70,24 @@ fun DairyFlowTheme(
         colorScheme = colorScheme,
         typography = Typography,
         shapes = DairyShapes,
+        content = content
+    )
+}
+
+@Composable
+fun DairyFlowTheme(
+    themePreference: AppThemePreference,
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val darkTheme = when (themePreference) {
+        AppThemePreference.LIGHT -> false
+        AppThemePreference.DARK -> true
+        AppThemePreference.SYSTEM -> isSystemInDarkTheme()
+    }
+    DairyFlowTheme(
+        darkTheme = darkTheme,
+        dynamicColor = dynamicColor,
         content = content
     )
 }

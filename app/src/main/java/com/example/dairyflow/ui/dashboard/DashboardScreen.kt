@@ -33,6 +33,8 @@ import com.example.dairyflow.ui.common.DairyMetricCard
 import com.example.dairyflow.ui.common.DairySectionTitle
 import com.example.dairyflow.ui.common.DairySummaryCard
 import com.example.dairyflow.ui.common.RefreshingState
+import com.example.dairyflow.ui.localization.LocalDairyStrings
+import com.example.dairyflow.ui.util.DateFormatter
 import com.example.dairyflow.ui.theme.DairyBlueSea
 import com.example.dairyflow.ui.theme.DairyGold
 import com.example.dairyflow.ui.theme.DairyGreen
@@ -45,11 +47,12 @@ fun DashboardScreen(
     viewModel: DashboardViewModel,
     onAddCustomer: () -> Unit = {},
     onAddProduct: () -> Unit = {},
-    onAddDelivery: () -> Unit = {},
+    onAddRoute: () -> Unit = {},
     onInvoice: () -> Unit = {},
     onAddDeliveryBoy: () -> Unit = {},
     onShowDeliveryQr: () -> Unit = {}
 ) {
+    val strings = LocalDairyStrings.current
     val state by viewModel.state.collectAsState()
     LaunchedEffect(Unit) { viewModel.load() }
 
@@ -58,7 +61,7 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            DairyDashboardHeader("Dashboard", "Today - ${todayIsoDate()}")
+            DairyDashboardHeader(strings.dashboard, "${strings.today} - ${DateFormatter.formatDate(todayIsoDate())}")
         }
         if (state.isLoading) {
             item { RefreshingState(if (state.data == null) "Preparing dashboard..." else "Refreshing dashboard...") }
@@ -78,14 +81,14 @@ fun DashboardScreen(
             item {
                 DairySectionTitle("Key metrics")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DairyMetricCard("Customers", stats.totalCustomers.toString(), Modifier.weight(1f), Icons.Filled.Groups, DairyViolet)
+                    DairyMetricCard(strings.customers, stats.totalCustomers.toString(), Modifier.weight(1f), Icons.Filled.Groups, DairyViolet)
                     DairyMetricCard("Products", stats.totalProducts.toString(), Modifier.weight(1f), Icons.Filled.Inventory2, DairyBlueSea)
                 }
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     DairyMetricCard("Delivery Boys", stats.totalDeliveryBoys.toString(), Modifier.weight(1f), Icons.Filled.LocalShipping, DairyGreen)
-                    DairyMetricCard("Today", stats.deliveredToday.toString(), Modifier.weight(1f), Icons.Filled.LocalShipping, DairyBlueSea)
+                    DairyMetricCard(strings.today, stats.deliveredToday.toString(), Modifier.weight(1f), Icons.Filled.LocalShipping, DairyBlueSea)
                 }
             }
             item {
@@ -103,7 +106,7 @@ fun DashboardScreen(
                             Button(onClick = onAddProduct, modifier = Modifier.weight(1f)) { Text("Add Product") }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = onAddDelivery, modifier = Modifier.weight(1f)) { Text("Add Delivery") }
+                            Button(onClick = onAddRoute, modifier = Modifier.weight(1f)) { Text("Add Route") }
                             Button(onClick = onInvoice, modifier = Modifier.weight(1f)) { Text("Invoice") }
                         }
                         Button(onClick = onAddDeliveryBoy, modifier = Modifier.fillMaxWidth()) {

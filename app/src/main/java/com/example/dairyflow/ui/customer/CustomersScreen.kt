@@ -1,19 +1,30 @@
 package com.example.dairyflow.ui.customer
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -22,8 +33,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.dairyflow.data.model.Customer
+import com.example.dairyflow.data.model.CustomerHold
 import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
@@ -32,12 +46,24 @@ import com.example.dairyflow.ui.common.DairyDashboardHeader
 import com.example.dairyflow.ui.common.OptionDropdown
 import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.common.SectionTitle
+import com.example.dairyflow.ui.localization.LocalDairyStrings
+import com.example.dairyflow.ui.viewmodel.CustomerCardStats
 import com.example.dairyflow.ui.viewmodel.CustomersViewModel
+import com.example.dairyflow.ui.viewmodel.todayIsoDate
 
 @Composable
-fun CustomersScreen(viewModel: CustomersViewModel, onOpenDetail: (String) -> Unit) {
+fun CustomersScreen(
+    viewModel: CustomersViewModel,
+    onOpenDetail: (String) -> Unit,
+    onOpenDeliveryChart: (String) -> Unit,
+    onOpenPaymentHistory: (String) -> Unit
+) {
+    val strings = LocalDairyStrings.current
     val state by viewModel.state.collectAsState()
     val routes by viewModel.routes.collectAsState()
+    val products by viewModel.products.collectAsState()
+    val cardStats by viewModel.cardStats.collectAsState()
+    val holds by viewModel.holds.collectAsState()
     var editing by remember { mutableStateOf<Customer?>(null) }
     var showForm by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -71,7 +97,7 @@ fun CustomersScreen(viewModel: CustomersViewModel, onOpenDetail: (String) -> Uni
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            DairyDashboardHeader(title = "Customers", subtitle = "Manage daily operations")
+            DairyDashboardHeader(title = strings.customers, subtitle = strings.manageDailyOperations)
         }
         item {
             Button(
@@ -90,7 +116,7 @@ fun CustomersScreen(viewModel: CustomersViewModel, onOpenDetail: (String) -> Uni
                     viewModel.save(it)
                     editing = null
                     showForm = false
-                }, onClear = {
+                }, products = products.data.orEmpty(), onClear = {
                     editing = null
                     showForm = false
                 })
@@ -121,12 +147,18 @@ fun CustomersScreen(viewModel: CustomersViewModel, onOpenDetail: (String) -> Uni
             state.data.isNullOrEmpty() -> item { EmptyState("No customers yet. Add your first customer above.") }
             filteredCustomers.isEmpty() -> item { EmptyState("No customers match this search or route.") }
             else -> items(filteredCustomers, key = { it.id ?: it.name }) { customer ->
-                CustomerCard(customer, routeName = routeRows.firstOrNull { it.id == customer.routeId }?.displayName, onOpen = { customer.id?.let(onOpenDetail) }, onEdit = {
+                CustomerCard(customer, onEdit = {
                     editing = customer
                     showForm = true
                 }, onDelete = {
                     customer.id?.let(viewModel::delete)
-                })
+                }, onDeliveryChart = {
+                    customer.id?.let(onOpenDeliveryChart)
+                }, onPaymentHistory = {
+                    customer.id?.let(onOpenPaymentHistory)
+                }, stats = customer.id?.let { cardStats[it] } ?: CustomerCardStats(),
+                    holds = holds.data.orEmpty().filter { it.customerId == customer.id }
+                )
             }
         }
     }
@@ -159,20 +191,120 @@ private fun CustomerFilters(
 }
 
 @Composable
-private fun CustomerCard(customer: Customer, routeName: String?, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(customer.name)
-            Text("${customer.phone.orEmpty()}  ${customer.address.orEmpty()}")
-            Text("Route: ${routeName ?: "No route"}")
-            Text("Rate Rs ${customer.milkRate} / L, Daily ${customer.dailyQuantity} L")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onEdit) { Text("Edit") }
-                OutlinedButton(onClick = onOpen) { Text("Detail") }
-                OutlinedButton(onClick = onDelete) { Text("Delete") }
+private fun CustomerCard(
+    customer: Customer,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onDeliveryChart: () -> Unit,
+    onPaymentHistory: () -> Unit,
+    stats: CustomerCardStats,
+    holds: List<CustomerHold>
+) {
+    var deleteConfirmStep by remember { mutableStateOf(0) }
+    val customerName = customer.name.ifBlank { customer.fullName.orEmpty().ifBlank { "Customer" } }
+    val isOnHold = holds.any { it.includes(todayIsoDate()) }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    customerName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                CustomerIconButton(Icons.Filled.Edit, "Edit customer", onEdit)
+                CustomerIconButton(Icons.Filled.Delete, "Delete customer", { deleteConfirmStep = 1 })
+                CustomerStatusBadge(if (isOnHold) "On Hold" else if (customer.isActive) "Active" else "Inactive")
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onPaymentHistory, modifier = Modifier.weight(1f)) {
+                    Icon(
+                        Icons.Filled.History,
+                        contentDescription = "Payment history, pending ${money(stats.pendingAmount)}",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text("Payment history")
+                }
+                Button(onClick = onDeliveryChart, modifier = Modifier.weight(1f)) {
+                    Icon(
+                        Icons.Filled.BarChart,
+                        contentDescription = "Delivery chart, ${stats.deliveredDays} delivered days",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text("Delivery chart")
+                }
             }
         }
     }
+    if (deleteConfirmStep == 1) {
+        AlertDialog(
+            onDismissRequest = { deleteConfirmStep = 0 },
+            title = { Text("Delete customer?") },
+            text = { Text("Do you want to delete $customerName?") },
+            confirmButton = {
+                Button(onClick = { deleteConfirmStep = 2 }) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteConfirmStep = 0 }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    if (deleteConfirmStep == 2) {
+        AlertDialog(
+            onDismissRequest = { deleteConfirmStep = 0 },
+            title = { Text("Final confirmation") },
+            text = { Text("This will permanently delete $customerName. This action cannot be undone.") },
+            confirmButton = {
+                Button(onClick = {
+                    deleteConfirmStep = 0
+                    onDelete()
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteConfirmStep = 0 }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
+
+@Composable
+private fun CustomerIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.size(48.dp)
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
+private fun CustomerStatusBadge(text: String) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (text == "Active") MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (text == "Active") MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
+    }
+}
+
+private fun money(value: Double): String = "₹%.0f".format(value)
 
 private const val NO_ROUTE_FILTER = "__NO_ROUTE__"

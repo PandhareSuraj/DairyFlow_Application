@@ -85,7 +85,7 @@ fun AddDeliveryScreen(viewModel: DeliveryViewModel, onSaved: () -> Unit, onBack:
                 OutlinedTextField(
                     date,
                     { date = it },
-                    label = { Text("Delivery date yyyy-mm-dd") },
+                    label = { Text("Delivery date") },
                     isError = errors["date"] != null,
                     supportingText = { errors["date"]?.let { Text(it) } },
                     singleLine = true,

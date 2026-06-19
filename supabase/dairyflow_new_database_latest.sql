@@ -17,6 +17,7 @@ drop table if exists public.invoice_items cascade;
 drop table if exists public.invoices cascade;
 drop table if exists public.payments cascade;
 drop table if exists public.deliveries cascade;
+drop table if exists public.customer_holds cascade;
 drop table if exists public.products cascade;
 drop table if exists public.customers cascade;
 drop table if exists public.delivery_boys cascade;
@@ -185,6 +186,32 @@ create index idx_customers_admin_id on public.customers(admin_id);
 create index idx_customers_route_id on public.customers(route_id);
 create index idx_customers_status on public.customers(status);
 create index idx_customers_phone on public.customers(phone);
+
+-- =========================================================
+-- 4B. CUSTOMER HOLDS
+-- =========================================================
+
+create table public.customer_holds (
+    id uuid primary key default gen_random_uuid(),
+
+    customer_id uuid not null references public.customers(id) on delete cascade,
+
+    hold_date date not null,
+    reason text,
+
+    status text not null default 'active'
+        check (status in ('active', 'cancelled')),
+
+    created_at timestamptz default now(),
+
+    unique(customer_id, hold_date)
+);
+
+create index idx_customer_holds_admin_customer_status
+on public.customer_holds(customer_id, status);
+
+create index idx_customer_holds_active_range
+on public.customer_holds(status, hold_date);
 
 -- =========================================================
 -- 5. PRODUCTS
@@ -859,6 +886,13 @@ begin
     where c.admin_id = auth.uid()
       and c.status = 'active'
       and c.delivery_time in ('Morning', 'Evening')
+      and not exists (
+          select 1
+          from public.customer_holds h
+          where h.customer_id = c.id
+            and h.status = 'active'
+            and current_date = h.hold_date
+      )
     on conflict (customer_id, delivery_date, delivery_time) do nothing;
 
     get diagnostics inserted_now = row_count;
@@ -896,6 +930,13 @@ begin
     where c.admin_id = auth.uid()
       and c.status = 'active'
       and c.delivery_time = 'Both'
+      and not exists (
+          select 1
+          from public.customer_holds h
+          where h.customer_id = c.id
+            and h.status = 'active'
+            and current_date = h.hold_date
+      )
     on conflict (customer_id, delivery_date, delivery_time) do nothing;
 
     get diagnostics inserted_now = row_count;
@@ -933,6 +974,13 @@ begin
     where c.admin_id = auth.uid()
       and c.status = 'active'
       and c.delivery_time = 'Both'
+      and not exists (
+          select 1
+          from public.customer_holds h
+          where h.customer_id = c.id
+            and h.status = 'active'
+            and current_date = h.hold_date
+      )
     on conflict (customer_id, delivery_date, delivery_time) do nothing;
 
     get diagnostics inserted_now = row_count;
@@ -1038,7 +1086,14 @@ from public.deliveries d
 join public.customers c on c.id = d.customer_id
 left join public.routes r on r.id = d.route_id
 left join public.delivery_boys db on db.id = d.delivery_boy_id
-where d.delivery_date = current_date;
+where d.delivery_date = current_date
+  and not exists (
+      select 1
+      from public.customer_holds h
+      where h.customer_id = d.customer_id
+        and h.status = 'active'
+        and d.delivery_date = h.hold_date
+  );
 
 -- =========================================================
 -- 17. ENABLE RLS
@@ -1050,6 +1105,7 @@ alter table public.delivery_boys enable row level security;
 alter table public.customers enable row level security;
 alter table public.products enable row level security;
 alter table public.deliveries enable row level security;
+alter table public.customer_holds enable row level security;
 alter table public.payments enable row level security;
 alter table public.invoices enable row level security;
 alter table public.invoice_items enable row level security;
@@ -1191,8 +1247,14 @@ on public.customers
 for insert
 to authenticated
 with check (
-    admin_id = auth.uid()
-    and public.current_user_role() = 'admin'
+    (
+        admin_id = auth.uid()
+        and public.current_user_role() = 'admin'
+    )
+    or (
+        admin_id = public.current_admin_id()
+        and public.current_user_role() = 'delivery_boy'
+    )
 );
 
 create policy "customers_update_policy"
@@ -1271,8 +1333,30 @@ on public.deliveries
 for insert
 to authenticated
 with check (
-    admin_id = auth.uid()
-    and public.current_user_role() = 'admin'
+    (
+        admin_id = auth.uid()
+        and public.current_user_role() = 'admin'
+    )
+    or (
+        public.current_user_role() = 'delivery_boy'
+        and admin_id = public.current_admin_id()
+        and delivery_date = current_date
+        and exists (
+            select 1
+            from public.profiles p
+            join public.delivery_boys db on db.id = p.delivery_boy_id
+            where p.id = auth.uid()
+              and p.status = 'active'
+              and p.role = 'delivery_boy'
+              and db.status = 'active'
+              and db.admin_id = public.deliveries.admin_id
+              and db.id = public.deliveries.delivery_boy_id
+              and (
+                  public.deliveries.route_id is null
+                  or db.assigned_route_id = public.deliveries.route_id
+              )
+        )
+    )
 );
 
 create policy "deliveries_update_policy"
@@ -1321,6 +1405,42 @@ to authenticated
 using (
     admin_id = auth.uid()
     and public.current_user_role() = 'admin'
+);
+
+-- CUSTOMER HOLDS
+create policy "customer_holds_select_policy"
+on public.customer_holds
+for select
+to authenticated
+using (
+    true
+);
+
+create policy "customer_holds_insert_policy"
+on public.customer_holds
+for insert
+to authenticated
+with check (
+    true
+);
+
+create policy "customer_holds_update_policy"
+on public.customer_holds
+for update
+to authenticated
+using (
+    true
+)
+with check (
+    true
+);
+
+create policy "customer_holds_delete_policy"
+on public.customer_holds
+for delete
+to authenticated
+using (
+    true
 );
 
 -- PAYMENTS
@@ -1505,6 +1625,7 @@ grant select, insert, update, delete on public.delivery_boys to authenticated;
 grant select, insert, update, delete on public.customers to authenticated;
 grant select, insert, update, delete on public.products to authenticated;
 grant select, insert, update, delete on public.deliveries to authenticated;
+grant select, insert, update, delete on public.customer_holds to authenticated;
 grant select, insert, update, delete on public.payments to authenticated;
 grant select, insert, update, delete on public.invoices to authenticated;
 grant select, insert, update, delete on public.invoice_items to authenticated;
@@ -1776,6 +1897,13 @@ begin
       on db.assigned_route_id = c.route_id and db.admin_id = c.admin_id and db.status = 'active'
     where c.admin_id = auth.uid() and c.status = 'active'
       and (p_route_id is null or c.route_id = p_route_id) and shifts.quantity > 0
+      and not exists (
+          select 1
+          from public.customer_holds h
+          where h.customer_id = c.id
+            and h.status = 'active'
+            and p_delivery_date = h.hold_date
+      )
     on conflict (customer_id, delivery_date, delivery_time) do nothing;
     get diagnostics inserted_total = row_count;
     return inserted_total;

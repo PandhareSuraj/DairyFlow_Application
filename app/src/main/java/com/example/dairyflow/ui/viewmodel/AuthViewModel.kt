@@ -174,6 +174,43 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         )
     }
 
+    fun requestWhatsAppLoginOtp(phone: String) = viewModelScope.launch {
+        val normalizedPhone = phone.filter(Char::isDigit)
+        if (normalizedPhone.length != 10 && !(normalizedPhone.startsWith("91") && normalizedPhone.length == 12)) {
+            _state.value = _state.value.copy(error = "Mobile number must be 10 digits.")
+            return@launch
+        }
+        _state.value = _state.value.copy(isLoading = true, error = null, message = null, otpSent = false, otpVerified = false)
+        _state.value = runCatching { repository.requestWhatsAppLoginOtp(phone) }.fold(
+            onSuccess = {
+                _state.value.copy(
+                    isLoading = false,
+                    otpSent = it.success,
+                    message = it.message ?: "OTP sent on WhatsApp."
+                )
+            },
+            onFailure = {
+                Log.w(TAG, "Request WhatsApp login OTP failed", it)
+                _state.value.copy(isLoading = false, error = it.otpMessage())
+            }
+        )
+    }
+
+    fun verifyWhatsAppLoginOtp(phone: String, otp: String) = viewModelScope.launch {
+        if (otp.length != 6) {
+            _state.value = _state.value.copy(error = "Enter the 6 digit OTP.")
+            return@launch
+        }
+        _state.value = _state.value.copy(isLoading = true, error = null, message = null)
+        _state.value = runCatching { repository.verifyWhatsAppLoginOtp(phone, otp) }.fold(
+            onSuccess = { profile -> AuthScreenState(isSignedIn = true, email = profile.email, profile = profile, otpVerified = true) },
+            onFailure = {
+                Log.w(TAG, "WhatsApp OTP login failed", it)
+                AuthScreenState(isSignedIn = false, error = it.otpMessage())
+            }
+        )
+    }
+
     fun sendAdminWhatsAppOtp(phone: String) = viewModelScope.launch {
         val normalizedPhone = phone.filter(Char::isDigit)
         if (normalizedPhone.length != 10 && !(normalizedPhone.startsWith("91") && normalizedPhone.length == 12)) {
@@ -448,6 +485,8 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
                 "Delivery boy account is not linked yet. Ask admin to create the delivery boy account again."
             "status" in lower && "ambiguous" in lower ->
                 "QR login database patch is not applied yet. Run supabase/fix_delivery_qr_login_now.sql in Supabase SQL editor."
+            "requested function was not found" in lower || "not_found" in lower ->
+                "QR login backend is not deployed for this Supabase project. Deploy verify-delivery-qr-login, then try again."
             "network" in lower || "timeout" in lower || "unable to resolve host" in lower ->
                 "Network problem. Please check your internet connection and try again."
             else -> text

@@ -29,12 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.dairyflow.ui.theme.DairyBlueSea
-import com.example.dairyflow.ui.theme.DairyCharcoal
-import com.example.dairyflow.ui.theme.DairyCream
 import com.example.dairyflow.ui.theme.DairyDeepNavy
 import com.example.dairyflow.ui.theme.DairyGold
 import com.example.dairyflow.ui.theme.DairyGreen
-import com.example.dairyflow.ui.theme.DairyMuted
 
 data class DairyBottomNavItem(
     val route: String,
@@ -61,14 +58,14 @@ fun DairyDashboardHeader(
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
-            color = DairyCharcoal,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyLarge,
-            color = DairyMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -167,7 +164,7 @@ fun DairyMetricCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -182,7 +179,7 @@ fun DairyMetricCard(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    color = DairyMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -193,7 +190,7 @@ fun DairyMetricCard(
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall,
-                color = DairyCharcoal,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -201,7 +198,7 @@ fun DairyMetricCard(
                 Text(
                     text = supportingText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = DairyMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -234,7 +231,7 @@ fun DairyBottomNavigation(
 ) {
     NavigationBar(
         modifier = modifier,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
         items.forEach { item ->
@@ -259,8 +256,8 @@ fun DairyBottomNavigation(
                     selectedIconColor = DairyBlueSea,
                     selectedTextColor = DairyBlueSea,
                     indicatorColor = DairyBlueSea.copy(alpha = 0.12f),
-                    unselectedIconColor = DairyMuted,
-                    unselectedTextColor = DairyMuted
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -282,7 +279,7 @@ fun DairySectionTitle(
         Text(
             text = text,
             style = MaterialTheme.typography.titleMedium,
-            color = DairyCharcoal
+            color = MaterialTheme.colorScheme.onBackground
         )
         if (actionLabel != null && onAction != null) {
             Button(onClick = onAction) {
@@ -318,7 +315,7 @@ fun DairyInfoPanel(
             verticalAlignment = Alignment.Top
         ) {
             if (icon != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.78f)) {
+                Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
@@ -328,8 +325,8 @@ fun DairyInfoPanel(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = DairyCharcoal)
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = DairyMuted)
+                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -342,7 +339,7 @@ fun DairyScreenSurface(
 ) {
     Column(
         modifier = modifier
-            .background(DairyCream)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

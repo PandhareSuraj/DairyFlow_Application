@@ -27,9 +27,9 @@ begin
     loop
         if token_row.token_hash = extensions.crypt(p_raw_token, token_row.token_hash) then
             update public.delivery_qr_login_tokens t
-            set status = 'used',
-                used_at = now(),
-                device_id = p_device_id
+            set used_at = now(),
+                device_id = p_device_id,
+                updated_at = now()
             where t.id = token_row.id;
 
             update public.profiles p

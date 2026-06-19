@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.dairyflow.core.SupabaseModule
 import com.example.dairyflow.core.SupabaseTables
 import com.example.dairyflow.data.model.AdminCustomer
+import com.example.dairyflow.data.model.AdminCustomerHold
 import com.example.dairyflow.data.model.AdminDashboardStats
 import com.example.dairyflow.data.model.AdminDataBundle
 import com.example.dairyflow.data.model.AdminDelivery
@@ -15,10 +16,24 @@ import com.example.dairyflow.data.model.AdminPaymentMethod
 import com.example.dairyflow.data.model.AdminProfile
 import com.example.dairyflow.data.model.AdminRole
 import com.example.dairyflow.data.model.AdminRoute
+import com.example.dairyflow.data.model.CustomerHoldRow
 import com.example.dairyflow.data.model.CustomerRow
 import com.example.dairyflow.data.model.CustomerUpsert
 import com.example.dairyflow.data.model.DeliveryBoyRow
+import com.example.dairyflow.data.model.DeliveryBoyDailyMilkRow
+import com.example.dairyflow.data.model.DeliveryBoyCalendarDay
+import com.example.dairyflow.data.model.DeliveryBoyDailyPerformanceDetails
+import com.example.dairyflow.data.model.DeliveryBoyDailyStock
+import com.example.dairyflow.data.model.DeliveryBoyDailyStockRow
+import com.example.dairyflow.data.model.DeliveryBoyDailyStockUpsert
+import com.example.dairyflow.data.model.DeliveryBoyMilkBreakdown
+import com.example.dairyflow.data.model.DeliveryBoyPaymentCollection
+import com.example.dairyflow.data.model.DeliveryBoyPaymentEntry
+import com.example.dairyflow.data.model.DeliveryBoyPaymentSummary
+import com.example.dairyflow.data.model.DeliveryBoyPerformance
+import com.example.dairyflow.data.model.DeliveryBoyPerformanceSummary
 import com.example.dairyflow.data.model.DeliveryBoyUpsert
+import com.example.dairyflow.data.model.DeliveryDayCompletionRow
 import com.example.dairyflow.data.model.DeliveryRow
 import com.example.dairyflow.data.model.DeliveryUpsert
 import com.example.dairyflow.data.model.Invoice
@@ -28,6 +43,7 @@ import com.example.dairyflow.data.model.InvoiceRow
 import com.example.dairyflow.data.model.InvoiceStatus
 import com.example.dairyflow.data.model.InvoiceUpsert
 import com.example.dairyflow.data.model.PaymentInsert
+import com.example.dairyflow.data.model.PaymentCollectionFilter
 import com.example.dairyflow.data.model.PaymentRow
 import com.example.dairyflow.data.model.Product
 import com.example.dairyflow.data.model.ProductRow
@@ -85,7 +101,7 @@ class AdminRepository(private val supabase: SupabaseClient) {
             pendingBills = data.invoices.count { it.invoiceStatus != InvoiceStatus.PAID },
             monthlyRevenue = monthInvoices.sumOf { it.paidAmount },
             previousPendingAmount = monthInvoices.sumOf { it.previousPendingAmount },
-            totalCollectedAmount = data.payments.sumOf { it.amount },
+            totalCollectedAmount = data.payments.filterNot { it.isAdvancePayment }.sumOf { it.amount },
             totalUnpaidCustomers = data.invoices.filter { it.pendingAmount > 0.0 }.map { it.customerId }.distinct().size
         )
     }
@@ -145,7 +161,14 @@ class AdminRepository(private val supabase: SupabaseClient) {
                         eq("admin_id", adminId)
                     }
                 }.decodeList<ProfileRow>()
-            }.map { it.toAdminProfile() }
+            }.map { it.toAdminProfile() },
+            customerHolds = safeList {
+                supabase.from(SupabaseTables.CUSTOMER_HOLDS).select {
+                    filter {
+                        eq("status", "active")
+                    }
+                }.decodeList<CustomerHoldRow>()
+            }.map { it.toAdminCustomerHold() }
         )
     }
 
@@ -171,7 +194,193 @@ class AdminRepository(private val supabase: SupabaseClient) {
             deliveries = deliveries.map { it.toAdminDelivery() },
             invoices = supabase.from(SupabaseTables.INVOICES).select { filter { eq("admin_id", adminId) } }.decodeList<InvoiceRow>().map { it.toAdminInvoice() },
             payments = supabase.from(SupabaseTables.PAYMENTS).select { filter { eq("admin_id", adminId) } }.decodeList<PaymentRow>().map { it.toAdminPayment() },
-            profiles = supabase.from(SupabaseTables.PROFILES).select { filter { eq("admin_id", adminId) } }.decodeList<ProfileRow>().map { it.toAdminProfile() }
+            profiles = supabase.from(SupabaseTables.PROFILES).select { filter { eq("admin_id", adminId) } }.decodeList<ProfileRow>().map { it.toAdminProfile() },
+            customerHolds = supabase.from(SupabaseTables.CUSTOMER_HOLDS).select {
+                filter {
+                    eq("status", "active")
+                }
+            }.decodeList<CustomerHoldRow>().map { it.toAdminCustomerHold() }
+        )
+    }
+
+    suspend fun loadDeliveriesBetween(start: String, end: String): List<AdminDelivery> {
+        val adminId = requireUserId()
+        return loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERIES, "select delivery date range") {
+            supabase.from(SupabaseTables.DELIVERIES).select {
+                filter {
+                    eq("admin_id", adminId)
+                    gte("delivery_date", start)
+                    lte("delivery_date", end)
+                }
+            }.decodeList<DeliveryRow>().map { it.toAdminPerformanceDelivery() }
+        }
+    }
+
+    suspend fun loadDeliveryBoyPerformance(
+        deliveryBoyId: String,
+        month: String,
+        routeId: String?
+    ): DeliveryBoyPerformance {
+        val adminId = requireUserId()
+        val start = "$month-01"
+        val end = monthEnd(month)
+        val bundle = loadAdminData(null)
+        val productsById = bundle.products.mapNotNull { product -> product.id?.let { it to product } }.toMap()
+        val customersById = bundle.customers.mapNotNull { customer -> customer.id?.let { it to customer } }.toMap()
+        val rows = loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERIES, "select delivery boy monthly performance") {
+            supabase.from(SupabaseTables.DELIVERIES).select {
+                filter {
+                    eq("admin_id", adminId)
+                    eq("delivery_boy_id", deliveryBoyId)
+                    gte("delivery_date", start)
+                    lte("delivery_date", end)
+                    if (!routeId.isNullOrBlank()) eq("route_id", routeId)
+                }
+            }.decodeList<DeliveryRow>().map { it.toAdminPerformanceDelivery() }
+        }
+        val deliveredRows = rows.filter { it.status == AdminDeliveryStatus.DELIVERED }
+        val summary = DeliveryBoyPerformanceSummary(
+            totalDeliveries = rows.size,
+            deliveredDeliveries = rows.count { it.status == AdminDeliveryStatus.DELIVERED },
+            skippedDeliveries = rows.count { it.status == AdminDeliveryStatus.SKIPPED },
+            pendingDeliveries = rows.count { it.status == AdminDeliveryStatus.PENDING },
+            cowMilkLiters = deliveredRows.filter { it.isCowMilk(productsById, customersById) }.sumOf { it.quantity },
+            buffaloMilkLiters = deliveredRows.filter { it.isBuffaloMilk(productsById, customersById) }.sumOf { it.quantity }
+        )
+        val chartRows = deliveredRows
+            .groupBy { it.deliveryDate }
+            .map { (date, deliveries) ->
+                DeliveryBoyDailyMilkRow(
+                    date = date,
+                    cowMilkLiters = deliveries.filter { it.isCowMilk(productsById, customersById) }.sumOf { it.quantity },
+                    buffaloMilkLiters = deliveries.filter { it.isBuffaloMilk(productsById, customersById) }.sumOf { it.quantity }
+                )
+            }
+            .sortedBy { it.date }
+        val completionRows = loadCompletionRows(deliveryBoyId, start, end)
+        return DeliveryBoyPerformance(
+            deliveryBoy = bundle.deliveryBoys.firstOrNull { it.id == deliveryBoyId },
+            routes = bundle.routes,
+            selectedMonth = month,
+            selectedRouteId = routeId,
+            summary = summary,
+            chartRows = chartRows,
+            calendarDays = buildCalendarDays(month, rows, completionRows)
+        )
+    }
+
+    suspend fun loadDeliveryBoyDailyPerformanceDetails(
+        deliveryBoyId: String,
+        date: String
+    ): DeliveryBoyDailyPerformanceDetails {
+        val adminId = requireUserId()
+        val bundle = loadAdminData(null)
+        val productsById = bundle.products.mapNotNull { product -> product.id?.let { it to product } }.toMap()
+        val customersById = bundle.customers.mapNotNull { customer -> customer.id?.let { it to customer } }.toMap()
+        val rows = loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERIES, "select delivery boy daily performance") {
+            supabase.from(SupabaseTables.DELIVERIES).select {
+                filter {
+                    eq("admin_id", adminId)
+                    eq("delivery_boy_id", deliveryBoyId)
+                    eq("delivery_date", date)
+                }
+            }.decodeList<DeliveryRow>().map { it.toAdminPerformanceDelivery() }
+        }
+        val stockRow = loadStockRows(deliveryBoyId, date, date).firstOrNull()
+        val deliveredRows = rows.filter { it.status == AdminDeliveryStatus.DELIVERED }
+        val delivered = DeliveryBoyMilkBreakdown(
+            cowMilkLiters = deliveredRows.filter { it.isCowMilk(productsById, customersById) }.sumOf { it.quantity },
+            buffaloMilkLiters = deliveredRows.filter { it.isBuffaloMilk(productsById, customersById) }.sumOf { it.quantity }
+        )
+        return DeliveryBoyDailyPerformanceDetails(
+            deliveryBoy = bundle.deliveryBoys.firstOrNull { it.id == deliveryBoyId },
+            date = date,
+            stock = stockRow?.toDailyStock() ?: DeliveryBoyDailyStock(date = date),
+            delivered = delivered,
+            hasTakenMilk = stockRow != null
+        )
+    }
+
+    suspend fun saveDeliveryBoyTakenMilk(
+        deliveryBoyId: String,
+        date: String,
+        cowMilkTakenLiters: Double,
+        buffaloMilkTakenLiters: Double,
+        notes: String?
+    ) {
+        require(cowMilkTakenLiters >= 0.0) { "Cow milk taken cannot be negative." }
+        require(buffaloMilkTakenLiters >= 0.0) { "Buffalo milk taken cannot be negative." }
+        loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERY_BOY_DAILY_STOCK, "upsert delivery boy daily stock") {
+            supabase.from(SupabaseTables.DELIVERY_BOY_DAILY_STOCK).upsert(
+                DeliveryBoyDailyStockUpsert(
+                    deliveryBoyId = deliveryBoyId,
+                    stockDate = date,
+                    cowMilkTakenLiters = cowMilkTakenLiters,
+                    buffaloMilkTakenLiters = buffaloMilkTakenLiters,
+                    notes = notes?.takeIf { it.isNotBlank() }
+                )
+            ) {
+                onConflict = "delivery_boy_id,stock_date"
+            }
+        }
+    }
+
+    suspend fun loadDeliveryBoyPaymentCollection(
+        deliveryBoyId: String,
+        filter: PaymentCollectionFilter,
+        startDate: String,
+        endDate: String
+    ): DeliveryBoyPaymentCollection {
+        val adminId = requireUserId()
+        val bundle = loadAdminData(null)
+        val effectiveStart = when (filter) {
+            PaymentCollectionFilter.TODAY -> today()
+            PaymentCollectionFilter.THIS_MONTH -> today().take(7) + "-01"
+            PaymentCollectionFilter.CUSTOM -> startDate.ifBlank { today() }
+        }
+        val effectiveEnd = when (filter) {
+            PaymentCollectionFilter.TODAY -> today()
+            PaymentCollectionFilter.THIS_MONTH -> monthEnd(today().take(7))
+            PaymentCollectionFilter.CUSTOM -> endDate.ifBlank { effectiveStart }
+        }
+        val rows = loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "select delivery boy payment collection") {
+            supabase.from(SupabaseTables.PAYMENTS).select {
+                filter {
+                    eq("admin_id", adminId)
+                    eq("collected_by", deliveryBoyId)
+                    gte("payment_date", effectiveStart)
+                    lte("payment_date", effectiveEnd)
+                }
+            }.decodeList<PaymentRow>().map { it.toAdminPayment() }
+        }.filterNot { it.isAdvancePayment }
+        val customersById = bundle.customers.mapNotNull { customer -> customer.id?.let { it to customer } }.toMap()
+        val invoicesById = bundle.invoices.mapNotNull { invoice -> invoice.id?.let { it to invoice } }.toMap()
+        val deliveryBoyName = bundle.deliveryBoys.firstOrNull { it.id == deliveryBoyId }?.name ?: "Delivery boy"
+        fun List<AdminPayment>.sumByMethod(method: AdminPaymentMethod): Double =
+            filter { it.paymentMethod == method }.sumOf { it.amount }
+        val summary = DeliveryBoyPaymentSummary(
+            totalCollectedAmount = rows.sumOf { it.amount },
+            cashCollected = rows.sumByMethod(AdminPaymentMethod.CASH),
+            upiCollected = rows.sumByMethod(AdminPaymentMethod.UPI),
+            bankTransferCollected = rows.sumByMethod(AdminPaymentMethod.BANK_TRANSFER),
+            entryCount = rows.size
+        )
+        return DeliveryBoyPaymentCollection(
+            deliveryBoy = bundle.deliveryBoys.firstOrNull { it.id == deliveryBoyId },
+            filter = filter,
+            startDate = effectiveStart,
+            endDate = effectiveEnd,
+            summary = summary,
+            entries = rows.sortedByDescending { it.createdAt ?: it.paymentDate }.map { payment ->
+                DeliveryBoyPaymentEntry(
+                    customerName = customersById[payment.customerId]?.fullName ?: "Customer",
+                    invoiceNumber = invoicesById[payment.invoiceId]?.invoiceNumber,
+                    amount = payment.amount,
+                    paymentMode = payment.paymentMethod,
+                    collectedAt = payment.createdAt ?: payment.paymentDate,
+                    collectedByName = deliveryBoyName
+                )
+            }
         )
     }
 
@@ -521,6 +730,7 @@ class AdminRepository(private val supabase: SupabaseClient) {
                     customerId = payment.customerId,
                     amount = payment.amount,
                     paymentDate = payment.paymentDate.ifBlank { today() },
+                    paymentType = payment.paymentType,
                     paymentMethod = payment.paymentMethod.toColumnValue(),
                     notes = listOfNotNull(
                         payment.notes?.takeIf { it.isNotBlank() },
@@ -562,7 +772,9 @@ class AdminRepository(private val supabase: SupabaseClient) {
                 eq("admin_id", adminId)
                 eq("invoice_id", invoiceId)
             }
-        }.decodeList<PaymentRow>().sumOf { it.amount }
+        }.decodeList<PaymentRow>()
+            .filterNot { it.paymentType.equals("advance", ignoreCase = true) }
+            .sumOf { it.amount }
         val balance = (invoice.totalAmount - paid).coerceAtLeast(0.0)
         val status = when {
             balance <= 0.0 -> "Paid"
@@ -607,6 +819,7 @@ class AdminRepository(private val supabase: SupabaseClient) {
         val adminId = requireUserId()
         val start = "$billingMonth-01"
         val end = monthEnd(billingMonth)
+        val holds = fetchActiveHoldRows(adminId, start, end)
         return supabase.from(SupabaseTables.DELIVERIES).select {
             filter {
                 eq("admin_id", adminId)
@@ -617,7 +830,17 @@ class AdminRepository(private val supabase: SupabaseClient) {
                 lte("delivery_date", end)
             }
         }.decodeList<DeliveryRow>()
+            .filterNot { delivery -> holds.any { it.customerId == delivery.customerId && it.includes(delivery.deliveryDate) } }
     }
+
+    private suspend fun fetchActiveHoldRows(adminId: String, start: String, end: String): List<CustomerHoldRow> =
+        supabase.from(SupabaseTables.CUSTOMER_HOLDS).select {
+            filter {
+                eq("status", "active")
+                gte("hold_date", start)
+                lte("hold_date", end)
+            }
+        }.decodeList<CustomerHoldRow>()
 
     private suspend fun fetchPreviousPending(customerId: String, billingMonth: String): Double {
         val adminId = requireUserId()
@@ -701,6 +924,78 @@ class AdminRepository(private val supabase: SupabaseClient) {
         }
     }
 
+    private suspend fun loadStockRows(deliveryBoyId: String, start: String, end: String): List<DeliveryBoyDailyStockRow> =
+        runCatching {
+            supabase.from(SupabaseTables.DELIVERY_BOY_DAILY_STOCK).select {
+                filter {
+                    eq("delivery_boy_id", deliveryBoyId)
+                    gte("stock_date", start)
+                    lte("stock_date", end)
+                }
+            }.decodeList<DeliveryBoyDailyStockRow>()
+        }.getOrElse {
+            Log.w("DeliverySaveError", "Daily stock table is not available yet.", it)
+            emptyList()
+        }
+
+    private suspend fun loadCompletionRows(deliveryBoyId: String, start: String, end: String): List<DeliveryDayCompletionRow> =
+        runCatching {
+            supabase.from(SupabaseTables.DELIVERY_DAY_COMPLETION).select {
+                filter {
+                    eq("delivery_boy_id", deliveryBoyId)
+                    gte("completion_date", start)
+                    lte("completion_date", end)
+                }
+            }.decodeList<DeliveryDayCompletionRow>()
+        }.getOrElse {
+            Log.w("DeliverySaveError", "Delivery completion table is not available yet.", it)
+            emptyList()
+        }
+
+    private fun buildCalendarDays(
+        month: String,
+        deliveries: List<AdminDelivery>,
+        completions: List<DeliveryDayCompletionRow>
+    ): List<DeliveryBoyCalendarDay> {
+        val parts = month.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull() ?: return emptyList()
+        val monthNumber = parts.getOrNull(1)?.toIntOrNull() ?: return emptyList()
+        val calendar = Calendar.getInstance(Locale.US).apply {
+            clear()
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, monthNumber - 1)
+            set(Calendar.DAY_OF_MONTH, 1)
+        }
+        val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val today = today()
+        val deliveriesByDate = deliveries.groupBy { it.deliveryDate }
+        val completedDates = completions
+            .filter {
+                it.status.equals("completed", ignoreCase = true) ||
+                    it.status.equals("partial", ignoreCase = true)
+            }
+            .map { it.completionDate }
+            .toSet()
+        return (1..maxDay).map { day ->
+            val date = "%04d-%02d-%02d".format(year, monthNumber, day)
+            val rows = deliveriesByDate[date].orEmpty()
+            val completedByTimestamp = rows.any { it.deliveryCompletedAt != null }
+            val completedByFinalStatus = rows.isNotEmpty() &&
+                rows.none { it.status == AdminDeliveryStatus.PENDING } &&
+                rows.any { it.status == AdminDeliveryStatus.DELIVERED || it.status == AdminDeliveryStatus.SKIPPED }
+            DeliveryBoyCalendarDay(
+                date = date,
+                dayOfMonth = day,
+                hasDelivery = rows.isNotEmpty(),
+                isCompleted = date in completedDates || completedByTimestamp || completedByFinalStatus,
+                skippedCount = rows.count { it.status == AdminDeliveryStatus.SKIPPED },
+                deliveredCount = rows.count { it.status == AdminDeliveryStatus.DELIVERED },
+                pendingCount = rows.count { it.status == AdminDeliveryStatus.PENDING },
+                isFuture = date > today
+            )
+        }
+    }
+
     private suspend fun requireUserId(): String =
         supabase.requireAdminId()
 
@@ -711,6 +1006,7 @@ class AdminRepository(private val supabase: SupabaseClient) {
         Product(
             id = id,
             productName = name,
+            category = category,
             productType = category.toProductType(),
             unit = unit.toProductUnit(),
             pricePerUnit = price,
@@ -727,6 +1023,9 @@ class AdminRepository(private val supabase: SupabaseClient) {
             address = address,
             area = area,
             routeId = routeId,
+            defaultProductId = productId,
+            productCategory = productCategory,
+            milkType = milkType,
             dailyQuantity = dailyQuantity,
             morningQuantity = morningQuantity.takeIf { it > 0.0 }
                 ?: if (deliveryTime.equals("Evening", ignoreCase = true)) 0.0 else dailyQuantity,
@@ -735,6 +1034,17 @@ class AdminRepository(private val supabase: SupabaseClient) {
             rate = pricePerLiter,
             isActive = status.equals("active", ignoreCase = true),
             openingPendingBalance = openingBalance,
+            createdAt = createdAt
+        )
+
+    private fun CustomerHoldRow.toAdminCustomerHold(): AdminCustomerHold =
+        AdminCustomerHold(
+            id = id,
+            customerId = customerId,
+            startDate = holdDate,
+            endDate = holdDate,
+            reason = reason,
+            status = status,
             createdAt = createdAt
         )
 
@@ -750,9 +1060,30 @@ class AdminRepository(private val supabase: SupabaseClient) {
             quantity = quantity,
             unitPrice = unitPrice,
             totalAmount = totalAmount,
+            status = (deliveryBoyStatus ?: deliveryStatus).toAdminDeliveryStatus(),
+            skipReason = skipReason,
+            notes = notes,
+            deliveryCompletedAt = deliveryCompletedAt,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+
+    private fun DeliveryRow.toAdminPerformanceDelivery(): AdminDelivery =
+        AdminDelivery(
+            id = id,
+            customerId = customerId,
+            productId = productId.orEmpty(),
+            deliveryBoyId = deliveryBoyId,
+            routeId = routeId,
+            deliveryDate = deliveryDate,
+            deliveryShift = if (deliveryTime.equals("Evening", ignoreCase = true)) AdminDeliveryShift.EVENING else AdminDeliveryShift.MORNING,
+            quantity = quantity,
+            unitPrice = unitPrice,
+            totalAmount = totalAmount,
             status = deliveryStatus.toAdminDeliveryStatus(),
             skipReason = skipReason,
             notes = notes,
+            deliveryCompletedAt = deliveryCompletedAt,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -782,12 +1113,22 @@ class AdminRepository(private val supabase: SupabaseClient) {
             id = id,
             invoiceId = invoiceId.orEmpty(),
             customerId = customerId,
+            collectedBy = collectedBy,
             amount = amount,
+            paymentType = paymentType ?: "regular",
             paymentMethod = paymentMethod.toAdminPaymentMethod(),
-            transactionId = collectedBy,
+            transactionId = transactionId,
             paymentDate = paymentDate,
             notes = notes,
             createdAt = createdAt
+        )
+
+    private fun DeliveryBoyDailyStockRow.toDailyStock(): DeliveryBoyDailyStock =
+        DeliveryBoyDailyStock(
+            date = stockDate,
+            cowMilkTakenLiters = cowMilkTakenLiters,
+            buffaloMilkTakenLiters = buffaloMilkTakenLiters,
+            notes = notes
         )
 
     private fun ProfileRow.toAdminProfile(): AdminProfile =
@@ -870,6 +1211,35 @@ class AdminRepository(private val supabase: SupabaseClient) {
     private fun String.toAdminRole(): AdminRole =
         AdminRole.entries.firstOrNull { it.name.equals(replace('-', '_'), ignoreCase = true) } ?: AdminRole.CUSTOMER
 
+    private fun AdminDelivery.isCowMilk(
+        productsById: Map<String, Product>,
+        customersById: Map<String, AdminCustomer>
+    ): Boolean {
+        val product = productsById[productId]
+        val customer = customersById[customerId]
+        val text = milkSignal(product, customer)
+        return text.contains("cow", ignoreCase = true) || !text.contains("buffalo", ignoreCase = true)
+    }
+
+    private fun AdminDelivery.isBuffaloMilk(
+        productsById: Map<String, Product>,
+        customersById: Map<String, AdminCustomer>
+    ): Boolean {
+        val product = productsById[productId]
+        val customer = customersById[customerId]
+        val text = milkSignal(product, customer)
+        return text.contains("buffalo", ignoreCase = true)
+    }
+
+    private fun milkSignal(product: Product?, customer: AdminCustomer?): String =
+        listOfNotNull(
+            product?.category,
+            product?.productName,
+            product?.productType?.name,
+            customer?.productCategory,
+            customer?.milkType
+        ).joinToString(" ")
+
     private fun deliveryTime(morning: Double, evening: Double): String =
         when {
             morning > 0.0 && evening > 0.0 -> "Both"
@@ -894,6 +1264,9 @@ class AdminRepository(private val supabase: SupabaseClient) {
 
     private fun today(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+
+    private fun CustomerHoldRow.includes(date: String): Boolean =
+        status.equals("active", ignoreCase = true) && date == holdDate
 }
 
 @Serializable

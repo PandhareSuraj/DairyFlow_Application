@@ -67,6 +67,18 @@ class AuthRepository(
     suspend fun verifyWhatsAppOtp(phone: String, otp: String): VerifyOtpResponse =
         otpRepository.verifyWhatsAppOtp(phone, otp)
 
+    suspend fun requestWhatsAppLoginOtp(phone: String): SendOtpResponse =
+        otpRepository.requestWhatsAppLoginOtp(phone)
+
+    suspend fun verifyWhatsAppLoginOtp(phone: String, otp: String): ProfileDetails {
+        val result = otpRepository.verifyWhatsAppLoginOtp(phone, otp)
+        if (!result.verified) throw InvalidOtpException(result.message ?: "Invalid OTP.")
+        importSessionOrThrow(result.accessToken, result.refreshToken, "WhatsApp OTP login did not return a session.")
+        val profile = result.profile?.toProfileDetails() ?: loadCurrentProfile()
+        return profile?.also { secureSessionStore.saveProfile(it) }
+            ?: throw ProfileCreationFailedException()
+    }
+
     suspend fun sendAdminWhatsAppOtp(phone: String): SendOtpResponse =
         if (testAdminLoginFor(phone) != null) {
             SendOtpResponse(
@@ -76,18 +88,19 @@ class AuthRepository(
                 expiresIn = 300
             )
         } else {
-            otpRepository.sendWhatsAppOtp(phone = phone, purpose = "login", role = "admin")
+            requestWhatsAppLoginOtp(phone)
         }
 
     suspend fun verifyAdminWhatsAppLogin(phone: String, otp: String): ProfileDetails {
         testAdminLoginFor(phone)?.takeIf { it.otp == otp }?.let { login ->
             return signInAdmin(login.email, login.password)
         }
-        val result = otpRepository.verifyAdminWhatsAppLogin(phone, otp)
-        importSessionOrThrow(result.accessToken, result.refreshToken, "Admin OTP login did not return a session.")
-        val profile = result.profile?.toProfileDetails() ?: loadCurrentProfile()
-        return profile?.also { secureSessionStore.saveProfile(it) }
-            ?: throw ProfileCreationFailedException()
+        val profile = verifyWhatsAppLoginOtp(phone, otp)
+        if (!profile.role.equals("admin", ignoreCase = true)) {
+            signOut()
+            throw InvalidRoleForLoginException("This account is not an admin account.")
+        }
+        return profile.also { secureSessionStore.saveProfile(it) }
     }
 
     suspend fun verifyDeliveryQrLogin(qrText: String, deviceId: String): ProfileDetails {

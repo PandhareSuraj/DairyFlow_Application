@@ -79,5 +79,5 @@ class ProductRepository(private val supabase: SupabaseClient) {
     )
 
     private suspend fun requireTenantAdminId(operation: String, payloadKeys: Set<String> = emptySet()): String =
-        supabase.requireAdminId(SupabaseTables.PRODUCTS, operation, payloadKeys)
+        supabase.requireTenantAdminId(SupabaseTables.PRODUCTS, operation, payloadKeys)
 }

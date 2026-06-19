@@ -21,7 +21,7 @@ class RouteRepository(private val supabase: SupabaseClient) {
 
     suspend fun getRouteRows(): List<RouteRow> =
         loggedSupabaseCall("RouteSaveError", SupabaseTables.ROUTES, "select routes") {
-            val adminId = requireAdminId("select routes")
+            val adminId = requireTenantAdminId("select routes")
             supabase.from(SupabaseTables.ROUTES).select {
                 filter { eq("admin_id", adminId) }
             }.decodeList<RouteRow>()
@@ -74,6 +74,9 @@ class RouteRepository(private val supabase: SupabaseClient) {
 
     private suspend fun requireAdminId(operation: String, payloadKeys: Set<String> = emptySet()): String =
         supabase.requireAdminId(SupabaseTables.ROUTES, operation, payloadKeys)
+
+    private suspend fun requireTenantAdminId(operation: String, payloadKeys: Set<String> = emptySet()): String =
+        supabase.requireTenantAdminId(SupabaseTables.ROUTES, operation, payloadKeys)
 
     private fun RouteRow.toRoute(): Route =
         Route(

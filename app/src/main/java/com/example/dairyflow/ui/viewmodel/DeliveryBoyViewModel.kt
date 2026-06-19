@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dairyflow.data.model.CustomerRow
 import com.example.dairyflow.data.model.DeliveryRow
+import com.example.dairyflow.data.model.InvoiceRow
 import com.example.dairyflow.data.model.ProductRow
 import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.data.model.UiState
@@ -19,6 +20,7 @@ data class DeliveryBoyDashboardState(
     val route: RouteRow? = null,
     val customers: List<CustomerRow> = emptyList(),
     val products: List<ProductRow> = emptyList(),
+    val outstandingInvoices: List<InvoiceRow> = emptyList(),
     val deliveries: List<DeliveryRow> = emptyList(),
     val extraBaseDeliveryIds: Map<String, String> = emptyMap()
 )
@@ -36,6 +38,7 @@ class DeliveryBoyViewModel(
                 route = repository.getAssignedRouteForCurrentDeliveryBoy(),
                 customers = repository.getRouteCustomersForCurrentDeliveryBoy(),
                 products = repository.getProductRowsForCurrentDeliveryBoy(),
+                outstandingInvoices = repository.getOutstandingInvoicesForCurrentDeliveryBoy(),
                 deliveries = repository.getTodayDeliveriesForCurrentDeliveryBoy().map { it.withDefaultDeliveryBoyStatus() }
             )
         }.fold(

@@ -6,6 +6,9 @@ import com.example.dairyflow.data.model.DeliveryBoy
 import com.example.dairyflow.data.model.DeliveryBoyRow
 import com.example.dairyflow.data.model.DeliveryBoyUpsert
 import com.example.dairyflow.data.model.DeliveryRow
+import com.example.dairyflow.data.model.InvoiceRow
+import com.example.dairyflow.data.model.PaymentInsert
+import com.example.dairyflow.data.model.PaymentRow
 import com.example.dairyflow.data.model.ProductRow
 import com.example.dairyflow.data.model.RouteRow
 import com.example.dairyflow.data.model.TodayDeliveryViewRow
@@ -145,6 +148,105 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
         }
     }
 
+    suspend fun getOutstandingInvoicesForCurrentDeliveryBoy(): List<InvoiceRow> {
+        val context = requireCurrentDeliveryBoyContext("select delivery boy outstanding invoices")
+        val customerIds = assignedCustomerIds(context)
+        if (customerIds.isEmpty()) return emptyList()
+        return loggedSupabaseCall("PaymentSaveError", SupabaseTables.INVOICES, "select delivery boy outstanding invoices") {
+            supabase.from(SupabaseTables.INVOICES).select {
+                filter {
+                    eq("admin_id", context.adminId)
+                    neq("status", "Paid")
+                }
+            }.decodeList<InvoiceRow>()
+                .filter { it.customerId in customerIds && it.balanceAmount > 0.0 }
+        }
+    }
+
+    suspend fun getPaymentHistoryForCurrentDeliveryBoy(): List<PaymentRow> {
+        val context = requireCurrentDeliveryBoyContext("select delivery boy payment history")
+        return loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "select delivery boy payment history") {
+            supabase.from(SupabaseTables.PAYMENTS).select {
+                filter {
+                    eq("admin_id", context.adminId)
+                    eq("collected_by", context.deliveryBoy.id.orEmpty())
+                }
+            }.decodeList<PaymentRow>()
+        }
+    }
+
+    suspend fun collectInvoicePayment(
+        invoiceId: String,
+        amount: Double,
+        paymentMode: String,
+        transactionId: String?,
+        notes: String?
+    ) {
+        require(amount > 0.0) { "Payment amount must be positive." }
+        val context = requireCurrentDeliveryBoyContext("collect invoice payment")
+        val customerIds = assignedCustomerIds(context)
+        val invoice = loggedSupabaseCall("PaymentSaveError", SupabaseTables.INVOICES, "select invoice for delivery boy payment") {
+            supabase.from(SupabaseTables.INVOICES).select {
+                filter {
+                    eq("id", invoiceId)
+                    eq("admin_id", context.adminId)
+                }
+            }.decodeSingle<InvoiceRow>()
+        }
+        require(invoice.customerId in customerIds) { "Invoice is not assigned to this delivery boy." }
+        require(invoice.balanceAmount > 0.0 && !invoice.status.equals("Paid", ignoreCase = true)) {
+            "Invoice is already paid."
+        }
+        val amountToSave = amount.coerceAtMost(invoice.balanceAmount)
+        val paymentNotes = listOfNotNull(
+            notes?.takeIf { it.isNotBlank() },
+            transactionId?.takeIf { it.isNotBlank() }?.let { "Transaction ID: $it" }
+        ).joinToString(" | ").takeIf { it.isNotBlank() }
+        loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "insert delivery boy payment") {
+            supabase.from(SupabaseTables.PAYMENTS).insert(
+                PaymentInsert(
+                    adminId = context.adminId,
+                    customerId = invoice.customerId,
+                    invoiceId = invoice.id,
+                    deliveryId = null,
+                    collectedBy = context.deliveryBoy.id,
+                    amount = amountToSave,
+                    paymentDate = today(),
+                    paymentType = "regular",
+                    paymentMode = paymentMode,
+                    paymentMethod = paymentMode,
+                    transactionId = transactionId?.takeIf { it.isNotBlank() },
+                    receivedAt = nowIso(),
+                    notes = paymentNotes
+                )
+            )
+        }
+        val paid = (invoice.paidAmount + amountToSave).coerceAtMost(invoice.totalAmount)
+        val balance = (invoice.totalAmount - paid).coerceAtLeast(0.0)
+        val status = when {
+            balance <= 0.0 -> "Paid"
+            paid > 0.0 -> "Partial"
+            else -> "Unpaid"
+        }
+        loggedSupabaseCall("PaymentSaveError", SupabaseTables.INVOICES, "update delivery boy invoice payment totals") {
+            supabase.from(SupabaseTables.INVOICES).update(
+                {
+                    set("paid_amount", paid)
+                    set("balance_amount", balance)
+                    set("status", status)
+                }
+            ) {
+                filter {
+                    eq("id", invoiceId)
+                    eq("admin_id", context.adminId)
+                }
+            }
+        }
+        if (status == "Paid") {
+            markInvoiceDeliveriesPaid(invoiceId)
+        }
+    }
+
     suspend fun markTodayDelivered(deliveryId: String): DeliveryRow =
         loggedSupabaseCall("DeliveryBoySaveError", SupabaseTables.DELIVERIES, "mark today delivered") {
             requireCurrentDeliveryBoyContext("mark today delivered")
@@ -235,6 +337,30 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
     private suspend fun requireAdminId(operation: String, payloadKeys: Set<String> = emptySet()): String =
         supabase.requireAdminId(SupabaseTables.DELIVERY_BOYS, operation, payloadKeys)
 
+    private suspend fun assignedCustomerIds(context: DeliveryBoyContext): Set<String> {
+        val routeId = context.deliveryBoy.routeId ?: return emptySet()
+        return supabase.from(SupabaseTables.CUSTOMERS).select {
+            filter {
+                eq("admin_id", context.adminId)
+                eq("route_id", routeId)
+                eq("status", "active")
+            }
+        }.decodeList<CustomerRow>().mapNotNull { it.id }.toSet()
+    }
+
+    private suspend fun markInvoiceDeliveriesPaid(invoiceId: String) {
+        val items = supabase.from(SupabaseTables.INVOICE_ITEMS).select {
+            filter { eq("invoice_id", invoiceId) }
+        }.decodeList<com.example.dairyflow.data.model.InvoiceItem>()
+        val deliveryIds = items.mapNotNull { it.deliveryId }
+        if (deliveryIds.isEmpty()) return
+        supabase.from(SupabaseTables.DELIVERIES).update(
+            { set("payment_status", "Paid") }
+        ) {
+            filter { isIn("id", deliveryIds) }
+        }
+    }
+
     private fun DeliveryBoyRow.toDeliveryBoy(): DeliveryBoy =
         DeliveryBoy(
             id = id,
@@ -249,6 +375,9 @@ class DeliveryBoyRepository(private val supabase: SupabaseClient) {
 
     private fun today(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+
+    private fun nowIso(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Calendar.getInstance().time)
 
     private fun TodayDeliveryViewRow.toDeliveryRow(): DeliveryRow =
         DeliveryRow(

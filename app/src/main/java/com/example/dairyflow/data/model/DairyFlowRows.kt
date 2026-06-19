@@ -58,6 +58,9 @@ data class CustomerRow(
     val id: String? = null,
     @SerialName("admin_id") val adminId: String? = null,
     @SerialName("route_id") val routeId: String? = null,
+    @SerialName("product_id") val productId: String? = null,
+    @SerialName("product_name") val productName: String? = null,
+    @SerialName("product_category") val productCategory: String? = null,
     @SerialName("full_name") val fullName: String = "",
     val phone: String = "",
     val email: String? = null,
@@ -71,6 +74,7 @@ data class CustomerRow(
     @SerialName("delivery_time") val deliveryTime: String = "Morning",
     val status: String = "active",
     @SerialName("opening_balance") val openingBalance: Double = 0.0,
+    @SerialName("advance_payment") val advancePayment: Double = 0.0,
     val notes: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
@@ -82,6 +86,9 @@ data class CustomerRow(
 data class CustomerUpsert(
     @SerialName("admin_id") val adminId: String,
     @SerialName("route_id") val routeId: String? = null,
+    @SerialName("product_id") val productId: String? = null,
+    @SerialName("product_name") val productName: String? = null,
+    @SerialName("product_category") val productCategory: String? = null,
     @SerialName("full_name") val fullName: String,
     val phone: String,
     val email: String? = null,
@@ -95,7 +102,26 @@ data class CustomerUpsert(
     @SerialName("delivery_time") val deliveryTime: String,
     val status: String,
     @SerialName("opening_balance") val openingBalance: Double = 0.0,
+    @SerialName("advance_payment") val advancePayment: Double = 0.0,
     val notes: String? = null
+)
+
+@Serializable
+data class CustomerHoldRow(
+    val id: String? = null,
+    @SerialName("customer_id") val customerId: String = "",
+    @SerialName("hold_date") val holdDate: String = "",
+    val reason: String? = null,
+    val status: String = "active",
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerHoldUpsert(
+    @SerialName("customer_id") val customerId: String,
+    @SerialName("hold_date") val holdDate: String,
+    val reason: String? = null,
+    val status: String = "active"
 )
 
 @Serializable
@@ -103,7 +129,7 @@ data class ProductRow(
     val id: String? = null,
     @SerialName("admin_id") val adminId: String? = null,
     val name: String = "",
-    val category: String = "Milk",
+    val category: String = "Cow",
     val unit: String = "Liter",
     val price: Double = 0.0,
     @SerialName("stock_quantity") val stockQuantity: Double = 0.0,
@@ -176,6 +202,37 @@ data class DeliveryUpdate(
 )
 
 @Serializable
+data class DeliveryBoyDailyStockRow(
+    val id: String? = null,
+    @SerialName("delivery_boy_id") val deliveryBoyId: String = "",
+    @SerialName("stock_date") val stockDate: String = "",
+    @SerialName("cow_milk_taken_liters") val cowMilkTakenLiters: Double = 0.0,
+    @SerialName("buffalo_milk_taken_liters") val buffaloMilkTakenLiters: Double = 0.0,
+    val notes: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+data class DeliveryBoyDailyStockUpsert(
+    @SerialName("delivery_boy_id") val deliveryBoyId: String,
+    @SerialName("stock_date") val stockDate: String,
+    @SerialName("cow_milk_taken_liters") val cowMilkTakenLiters: Double = 0.0,
+    @SerialName("buffalo_milk_taken_liters") val buffaloMilkTakenLiters: Double = 0.0,
+    val notes: String? = null
+)
+
+@Serializable
+data class DeliveryDayCompletionRow(
+    val id: String? = null,
+    @SerialName("delivery_boy_id") val deliveryBoyId: String = "",
+    @SerialName("completion_date") val completionDate: String = "",
+    val status: String = "completed",
+    @SerialName("completed_at") val completedAt: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
 data class InvoiceRow(
     val id: String? = null,
     @SerialName("admin_id") val adminId: String? = null,
@@ -188,6 +245,7 @@ data class InvoiceRow(
     @SerialName("paid_amount") val paidAmount: Double = 0.0,
     @SerialName("balance_amount") val balanceAmount: Double = 0.0,
     val status: String = "Unpaid",
+    @SerialName("generated_at") val generatedAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )
@@ -253,7 +311,11 @@ data class PaymentRow(
     @SerialName("collected_by") val collectedBy: String? = null,
     val amount: Double = 0.0,
     @SerialName("payment_date") val paymentDate: String = "",
+    @SerialName("payment_type") val paymentType: String? = null,
+    @SerialName("payment_mode") val paymentMode: String? = null,
     @SerialName("payment_method") val paymentMethod: String = "Cash",
+    @SerialName("transaction_id") val transactionId: String? = null,
+    @SerialName("received_at") val receivedAt: String? = null,
     val notes: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
@@ -268,7 +330,11 @@ data class PaymentInsert(
     @SerialName("collected_by") val collectedBy: String? = null,
     val amount: Double,
     @SerialName("payment_date") val paymentDate: String,
+    @SerialName("payment_type") val paymentType: String = "regular",
+    @SerialName("payment_mode") val paymentMode: String? = null,
     @SerialName("payment_method") val paymentMethod: String,
+    @SerialName("transaction_id") val transactionId: String? = null,
+    @SerialName("received_at") val receivedAt: String? = null,
     val notes: String? = null
 )
 

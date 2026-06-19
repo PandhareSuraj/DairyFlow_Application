@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.dairyflow.data.model.CustomerRow
 import com.example.dairyflow.data.model.DeliveryRow
 import com.example.dairyflow.ui.common.EmptyState
 import com.example.dairyflow.ui.common.ErrorState
@@ -33,29 +34,33 @@ import com.example.dairyflow.ui.common.LoadingState
 import com.example.dairyflow.ui.common.DairyDashboardHeader
 import com.example.dairyflow.ui.common.OptionDropdown
 import com.example.dairyflow.ui.common.RefreshingState
+import com.example.dairyflow.ui.localization.LocalDairyStrings
+import com.example.dairyflow.ui.util.DateFormatter
 import com.example.dairyflow.ui.viewmodel.DeliveryViewModel
 import com.example.dairyflow.ui.viewmodel.todayIsoDate
 
 @Composable
 fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {}) {
+    val strings = LocalDairyStrings.current
     val state by viewModel.state.collectAsState()
     var selectedDate by remember { mutableStateOf(todayIsoDate()) }
     var filter by remember { mutableStateOf("All") }
     var routeFilter by remember { mutableStateOf("All routes") }
     var deleteTarget by remember { mutableStateOf<DeliveryRow?>(null) }
+    var selectedDelivery by remember { mutableStateOf<DeliveryDetails?>(null) }
     LaunchedEffect(Unit) { viewModel.load(selectedDate) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { DairyDashboardHeader(title = "Deliveries", subtitle = "Daily customer delivery schedule") }
+        item { DairyDashboardHeader(title = strings.deliveries, subtitle = strings.dailyDeliverySchedule) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = selectedDate,
                     onValueChange = { selectedDate = it },
-                    label = { Text("Delivery date yyyy-mm-dd") },
+                    label = { Text("Delivery date") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -115,7 +120,7 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
                     matchesStatus && matchesRoute
                 }
                 if (deliveries.isEmpty()) {
-                    item { EmptyState("No $filter deliveries for ${data?.selectedDate ?: selectedDate} in $routeFilter.") }
+                    item { EmptyState("No $filter deliveries for ${DateFormatter.formatDate(data?.selectedDate ?: selectedDate)} in $routeFilter.") }
                 }
                 items(deliveries, key = { it.id ?: "${it.customerId}-${it.deliveryDate}" }) { delivery ->
                     val customerName = customersById[delivery.customerId]?.displayName ?: "Customer"
@@ -131,6 +136,14 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
                         routeLabel = routeName ?: "No route",
                         onDelivered = { delivery.id?.let { viewModel.updateDeliveryStatus(it, "Delivered") } },
                         onSkipped = { delivery.id?.let { viewModel.updateDeliveryStatus(it, "Skipped") } },
+                        onDetails = {
+                            selectedDelivery = DeliveryDetails(
+                                delivery = delivery,
+                                customerName = customerName,
+                                productName = productName,
+                                routeLabel = routeName ?: "No route"
+                            )
+                        },
                         onDelete = { deleteTarget = delivery }
                     )
                 }
@@ -156,6 +169,13 @@ fun DeliveryScreen(viewModel: DeliveryViewModel, onAddDelivery: () -> Unit = {})
             }
         )
     }
+
+    selectedDelivery?.let { details ->
+        DeliveryDetailsDialog(
+            details = details,
+            onDismiss = { selectedDelivery = null }
+        )
+    }
 }
 
 @Composable
@@ -166,19 +186,59 @@ private fun DeliveryCard(
     routeLabel: String,
     onDelivered: () -> Unit,
     onSkipped: () -> Unit,
+    onDetails: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(customerName, style = MaterialTheme.typography.titleMedium)
-            Text("$productName - ${delivery.deliveryDate} - ${delivery.deliveryTime}")
-            Text("$routeLabel - Qty ${delivery.quantity} L - Rs %.2f".format(delivery.totalAmount))
-            Text("Delivery: ${delivery.deliveryStatus} - Payment: ${delivery.paymentStatus}")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onDelivered) { Text("Delivered") }
-                OutlinedButton(onClick = onSkipped) { Text("Skipped") }
-                TextButton(onClick = onDelete) { Text("Delete") }
+            Text("Delivery status: ${delivery.deliveryStatus}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onDelivered, modifier = Modifier.weight(1f)) { Text("Delivered") }
+                OutlinedButton(onClick = onSkipped, modifier = Modifier.weight(1f)) { Text("Skipped") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onDetails, modifier = Modifier.weight(1f)) { Text("Details") }
+                TextButton(onClick = onDelete, modifier = Modifier.weight(1f)) { Text("Delete") }
             }
         }
     }
 }
+
+@Composable
+private fun DeliveryDetailsDialog(details: DeliveryDetails, onDismiss: () -> Unit) {
+    val delivery = details.delivery
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delivery details") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DetailRow("Customer name", details.customerName)
+                DetailRow("Date", DateFormatter.formatDate(delivery.deliveryDate))
+                DetailRow("Shift", delivery.deliveryTime)
+                DetailRow("Route", details.routeLabel)
+                DetailRow("Product / milk type", details.productName)
+                DetailRow("Quantity", "%.1f L".format(delivery.quantity))
+                DetailRow("Amount", "Rs %.2f".format(delivery.totalAmount))
+                DetailRow("Delivery status", delivery.deliveryStatus)
+                DetailRow("Payment status", delivery.paymentStatus)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value.ifBlank { "-" }, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+private data class DeliveryDetails(
+    val delivery: DeliveryRow,
+    val customerName: String,
+    val productName: String,
+    val routeLabel: String
+)

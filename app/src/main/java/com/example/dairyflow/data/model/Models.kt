@@ -26,6 +26,9 @@ data class Customer(
     val adminId: String? = null,
     val profileId: String? = null,
     val routeId: String? = null,
+    val productId: String? = null,
+    val productName: String? = null,
+    val productCategory: String = "Cow",
     val fullName: String? = null,
     val name: String = fullName.orEmpty(),
     val mobileNumber: String? = null,
@@ -41,10 +44,24 @@ data class Customer(
     val milkType: String = "Cow",
     val deliveryTime: String = "Morning",
     val openingBalance: Double = 0.0,
+    val advancePayment: Double = 0.0,
     val notes: String? = null,
     val isActive: Boolean = true,
     val createdAt: String? = null
 )
+
+data class CustomerHold(
+    val id: String? = null,
+    val customerId: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val reason: String? = null,
+    val status: String = "active",
+    val createdAt: String? = null
+) {
+    fun includes(date: String): Boolean =
+        status.equals("active", ignoreCase = true) && date >= startDate && date <= endDate
+}
 
 data class MilkProduct(
     val id: String? = null,
@@ -97,15 +114,17 @@ data class Payment(
     val collectedBy: String? = null,
     val amount: Double = 0.0,
     val paymentDate: String = "",
+    val paymentType: String = "regular",
     val paymentMethod: String = "Cash",
+    val transactionId: String? = null,
     val notes: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null
 ) {
     val billingRecordId: String get() = invoiceId.orEmpty()
     val method: PaymentMethod get() = PaymentMethod.fromText(paymentMethod)
-    val transactionId: String? get() = null
     val paidAt: String get() = paymentDate
+    val isAdvancePayment: Boolean get() = paymentType.equals("advance", ignoreCase = true)
 }
 
 data class DeliveryBoy(

@@ -1,6 +1,7 @@
 package com.example.dairyflow.core
 
 import android.content.Context
+import com.example.dairyflow.data.repository.AppSettingsRepository
 import com.example.dairyflow.data.repository.AuthRepository
 import com.example.dairyflow.data.repository.AdminRepository
 import com.example.dairyflow.data.repository.BillingRepository
@@ -38,4 +39,5 @@ class AppContainer(context: Context) {
     val paymentRepository = PaymentRepository(supabase, billingRepository, RazorpayGateway())
     val dashboardRepository = DashboardRepository(supabase)
     val reportsRepository = ReportsRepository(deliveryRepository, billingRepository, paymentRepository)
+    val appSettingsRepository = AppSettingsRepository(appContext)
 }
