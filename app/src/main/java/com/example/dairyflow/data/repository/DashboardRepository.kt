@@ -46,7 +46,7 @@ class DashboardRepository(private val supabase: SupabaseClient) {
             supabase.from(SupabaseTables.PAYMENTS).select {
                 filter { eq("admin_id", adminId) }
             }.decodeList<PaymentRow>()
-        }
+        }.filterNot { it.paymentType.equals("advance", ignoreCase = true) }
         val todayDeliveries = deliveries.filter { it.deliveryDate == today }
         val monthPrefix = "%04d-%02d".format(currentYear(), currentMonth())
         val monthInvoices = invoices.filter { it.billingMonth == monthPrefix }

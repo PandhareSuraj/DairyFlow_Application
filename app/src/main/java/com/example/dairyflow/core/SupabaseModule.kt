@@ -11,7 +11,7 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 
 object SupabaseModule {
-    private const val SUPABASE_API_URL = "https://tdtyrgjdqoimbvgxewzr.supabase.co"
+    private const val SUPABASE_API_URL = "https://utzvslmzjdtwbhzrolje.supabase.co"
     const val AUTH_CALLBACK_URL = "dairyflow://auth/callback"
     val supabaseUrl: String get() = normalizedUrl()
     val anonKey: String get() = BuildConfig.SUPABASE_KEY

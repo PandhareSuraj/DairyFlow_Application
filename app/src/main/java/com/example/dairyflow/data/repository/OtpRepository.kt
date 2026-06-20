@@ -59,6 +59,22 @@ class OtpRepository(context: Context) {
             responseDeserializer = VerifyOtpResponse.serializer()
         )
 
+    suspend fun requestWhatsAppLoginOtp(phone: String): SendOtpResponse =
+        callFunction(
+            functionName = "auth-whatsapp/request-otp",
+            payload = WhatsAppLoginOtpRequest(normalizePhone(phone)),
+            serializer = WhatsAppLoginOtpRequest.serializer(),
+            responseDeserializer = SendOtpResponse.serializer()
+        )
+
+    suspend fun verifyWhatsAppLoginOtp(phone: String, otp: String): WhatsAppLoginResponse =
+        callFunction(
+            functionName = "auth-whatsapp/verify-otp",
+            payload = VerifyOtpRequest(normalizePhone(phone), otp.trim()),
+            serializer = VerifyOtpRequest.serializer(),
+            responseDeserializer = WhatsAppLoginResponse.serializer()
+        )
+
     suspend fun verifyAdminWhatsAppLogin(phone: String, otp: String): VerifyAdminLoginResponse =
         callFunction(
             functionName = "verify-admin-whatsapp-login",
@@ -126,6 +142,11 @@ data class VerifyOtpRequest(
 )
 
 @Serializable
+data class WhatsAppLoginOtpRequest(
+    val phone: String
+)
+
+@Serializable
 data class VerifyAdminLoginRequest(
     val phone: String,
     val otp: String,
@@ -146,6 +167,17 @@ data class VerifyOtpResponse(
 data class VerifyAdminLoginResponse(
     val success: Boolean = false,
     val role: String = "admin",
+    val profile: ProfileSessionPayload? = null,
+    @SerialName("access_token") val accessToken: String? = null,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("token_type") val tokenType: String? = null,
+    val message: String? = null
+)
+
+@Serializable
+data class WhatsAppLoginResponse(
+    val verified: Boolean = false,
     val profile: ProfileSessionPayload? = null,
     @SerialName("access_token") val accessToken: String? = null,
     @SerialName("refresh_token") val refreshToken: String? = null,

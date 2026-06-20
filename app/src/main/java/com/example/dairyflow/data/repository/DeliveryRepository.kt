@@ -5,13 +5,16 @@ import com.example.dairyflow.data.model.DeliveryRow
 import com.example.dairyflow.data.model.DeliveryShift
 import com.example.dairyflow.data.model.DeliveryStatus
 import com.example.dairyflow.data.model.DeliveryUpsert
+import com.example.dairyflow.data.model.CustomerHoldRow
 import com.example.dairyflow.data.model.CustomerRow
 import com.example.dairyflow.data.model.DeliveryBoyRow
 import com.example.dairyflow.data.model.Product
 import com.example.dairyflow.data.model.ProductRow
 import com.example.dairyflow.core.SupabaseTables
+import android.util.Log
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -70,6 +73,9 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
                 }
             }.decodeList<CustomerRow>()
         }
+        val holds = getActiveHoldRowsForDate(adminId, date)
+        val heldCustomerIds = holds.map { it.customerId }.toSet()
+        val availableCustomers = customers.filter { it.id !in heldCustomerIds }
         val products: List<ProductRow> = getProductRows().filter { it.status.equals("active", ignoreCase = true) }
         if (products.isEmpty()) return 0
         val deliveryBoys: List<DeliveryBoyRow> = loggedSupabaseCall("DeliverySaveError", SupabaseTables.DELIVERY_BOYS, "select delivery boys for daily deliveries") {
@@ -85,9 +91,9 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
             .toMutableSet()
         var created = 0
 
-        customers.forEach customerLoop@{ customer ->
+        availableCustomers.forEach customerLoop@{ customer ->
             val customerId = customer.id ?: return@customerLoop
-            val product = products.bestMatchFor(customer.milkType)
+            val product = products.bestMatchFor(customer)
             customer.deliveryQuantities().forEach deliveryLoop@{ (deliveryTime, quantity) ->
                 val key = "$customerId|${deliveryTime.lowercase(Locale.US)}"
                 if (quantity <= 0.0 || key in existingKeys) return@deliveryLoop
@@ -127,7 +133,6 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
                 filter {
                     eq("admin_id", adminId)
                     eq("customer_id", customerId)
-                    eq("delivery_status", "Delivered")
                     gte("delivery_date", start)
                     lte("delivery_date", end)
                 }
@@ -268,8 +273,9 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
         val start = "$billingMonth-01"
         val parts = billingMonth.split("-")
         val end = monthEnd(parts[0].toInt(), parts[1].toInt())
+        val adminId = requireTenantAdminId("select pending deliveries")
+        val holds = activeHoldRowsForRange(adminId, start, end)
         return loggedSupabaseCall("BillingError", SupabaseTables.DELIVERIES, "select pending deliveries") {
-            val adminId = requireTenantAdminId("select pending deliveries")
             supabase.from(SupabaseTables.DELIVERIES).select {
                 filter {
                     eq("admin_id", adminId)
@@ -280,6 +286,7 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
                     lte("delivery_date", end)
                 }
             }.decodeList<DeliveryRow>()
+                .filterNot { row -> holds.any { it.customerId == row.customerId && it.includes(row.deliveryDate) } }
         }
     }
 
@@ -340,7 +347,53 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
     }
 
     private suspend fun requireTenantAdminId(operation: String, payloadKeys: Set<String> = emptySet()): String =
-        supabase.requireAdminId(SupabaseTables.DELIVERIES, operation, payloadKeys)
+        supabase.requireTenantAdminId(SupabaseTables.DELIVERIES, operation, payloadKeys)
+
+    private suspend fun getActiveHoldRowsForDate(adminId: String, date: String): List<CustomerHoldRow> =
+        optionalHoldRows("select customer holds for delivery date") {
+            supabase.from(SupabaseTables.CUSTOMER_HOLDS).select {
+                filter {
+                    eq("status", "active")
+                    eq("hold_date", date)
+                }
+            }.decodeList<CustomerHoldRow>()
+        }
+
+    private suspend fun activeHoldRowsForRange(adminId: String, start: String, end: String): List<CustomerHoldRow> =
+        optionalHoldRows("select customer holds for billing range") {
+            supabase.from(SupabaseTables.CUSTOMER_HOLDS).select {
+                filter {
+                    eq("status", "active")
+                    gte("hold_date", start)
+                    lte("hold_date", end)
+                }
+            }.decodeList<CustomerHoldRow>()
+        }
+
+    private suspend fun optionalHoldRows(operation: String, block: suspend () -> List<CustomerHoldRow>): List<CustomerHoldRow> =
+        try {
+            block()
+        } catch (e: Exception) {
+            if (e.isMissingCustomerHoldsSchema()) {
+                Log.w("DeliverySaveError", "Customer holds migration is not applied yet; continuing without hold filtering for $operation.")
+                emptyList()
+            } else {
+                logSupabaseFailure("DeliverySaveError", SupabaseTables.CUSTOMER_HOLDS, operation, error = e)
+                throw e
+            }
+        }
+
+    private fun Throwable.isMissingCustomerHoldsSchema(): Boolean {
+        val text = listOfNotNull(message, (this as? PostgrestRestException)?.details, (this as? PostgrestRestException)?.hint)
+            .joinToString(" ")
+        return text.contains("customer_holds", ignoreCase = true) ||
+            text.contains("relation", ignoreCase = true) ||
+            text.contains("schema", ignoreCase = true) ||
+            (this as? PostgrestRestException)?.code in setOf("42P01", "PGRST204")
+    }
+
+    private fun CustomerHoldRow.includes(date: String): Boolean =
+        status.equals("active", ignoreCase = true) && date == holdDate
 
     private fun DeliveryRow.toDeliveryRecord(): DeliveryRecord =
         DeliveryRecord(
@@ -369,18 +422,25 @@ class DeliveryRepository(private val supabase: SupabaseClient) {
         Product(
             id = id,
             productName = name,
+            category = category,
             pricePerUnit = price,
             stockQuantity = stockQuantity,
             isActive = status.equals("active", ignoreCase = true),
             createdAt = createdAt
         )
 
-    private fun List<ProductRow>.bestMatchFor(milkType: String): ProductRow =
-        firstOrNull { product ->
-            product.name.equals(milkType, ignoreCase = true) ||
-                product.name.contains(milkType, ignoreCase = true) ||
-                product.category.equals(milkType, ignoreCase = true)
-        } ?: first()
+    private fun List<ProductRow>.bestMatchFor(customer: CustomerRow): ProductRow =
+        firstOrNull { it.id == customer.productId }
+            ?: firstOrNull { product ->
+                product.category.equals(customer.productCategory ?: customer.milkType, ignoreCase = true) &&
+                    product.name.equals("Milk", ignoreCase = true)
+            }
+            ?: firstOrNull { product ->
+                product.name.equals(customer.milkType, ignoreCase = true) ||
+                    product.name.contains(customer.milkType, ignoreCase = true) ||
+                    product.category.equals(customer.productCategory ?: customer.milkType, ignoreCase = true)
+            }
+            ?: first()
 
     private fun CustomerRow.deliveryQuantities(): List<Pair<String, Double>> {
         val normalizedTime = deliveryTime.lowercase(Locale.US)

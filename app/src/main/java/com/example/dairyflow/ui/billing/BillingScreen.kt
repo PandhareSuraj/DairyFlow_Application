@@ -32,6 +32,7 @@ import com.example.dairyflow.ui.common.LoadingState
 import com.example.dairyflow.ui.common.OptionDropdown
 import com.example.dairyflow.ui.common.RefreshingState
 import com.example.dairyflow.ui.common.SectionTitle
+import com.example.dairyflow.ui.util.DateFormatter
 import com.example.dairyflow.ui.viewmodel.BillingViewModel
 import com.example.dairyflow.ui.viewmodel.currentMonth
 import com.example.dairyflow.ui.viewmodel.currentYear
@@ -99,7 +100,7 @@ fun BillingScreen(viewModel: BillingViewModel) {
                 items(pendingDeliveries, key = { it.id ?: it.deliveryDate }) {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(it.deliveryDate)
+                            Text(DateFormatter.formatDate(it.deliveryDate))
                             Text("Qty ${it.quantity} x Rs ${it.unitPrice}")
                             Text("Amount Rs %.2f".format(it.totalAmount))
                         }
@@ -146,7 +147,7 @@ private fun InvoiceGeneratorCard(
             OutlinedTextField(
                 billingMonth,
                 onBillingMonth,
-                label = { Text("Billing month yyyy-mm") },
+                label = { Text("Billing month") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -177,7 +178,7 @@ private fun InvoiceCard(invoice: InvoiceRow, customerName: String, onMarkPaid: (
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(invoice.invoiceNumber, style = MaterialTheme.typography.titleMedium)
-            Text("$customerName - ${invoice.billingMonth}")
+            Text("$customerName - ${DateFormatter.formatBillingMonth(invoice.billingMonth)}")
             Text("Total Rs %.2f - Paid Rs %.2f - Balance Rs %.2f".format(invoice.totalAmount, invoice.paidAmount, invoice.balanceAmount))
             Text("Status: ${invoice.status}")
             if (invoice.status != "Paid") {

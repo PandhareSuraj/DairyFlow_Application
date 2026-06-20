@@ -1,0 +1,1029 @@
+[
+  {
+    "name": "tables",
+    "rows": [
+      {
+        "table_name": "customers",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "deliveries",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "delivery_boys",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "delivery_qr_login_tokens",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "invoice_items",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "invoices",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "payments",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "products",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "profiles",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "routes",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "whatsapp_otp_requests",
+        "table_type": "BASE TABLE"
+      },
+      {
+        "table_name": "today_delivery_view",
+        "table_type": "VIEW"
+      }
+    ]
+  },
+  {
+    "name": "foreign_keys",
+    "rows": [
+      {
+        "constraint_name": "audit_log_user_id_fkey",
+        "table_name": "audit_log",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "constraint_name": "fk_customer_subscriptions_dairy",
+        "table_name": "customer_subscriptions",
+        "definition": "FOREIGN KEY (dairy_id) REFERENCES dairies(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "customers_admin_id_fkey",
+        "table_name": "customers",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "customers_route_id_fkey",
+        "table_name": "customers",
+        "definition": "FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "deliveries_admin_id_fkey",
+        "table_name": "deliveries",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "deliveries_customer_id_fkey",
+        "table_name": "deliveries",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "deliveries_delivery_boy_id_fkey",
+        "table_name": "deliveries",
+        "definition": "FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "deliveries_product_id_fkey",
+        "table_name": "deliveries",
+        "definition": "FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "deliveries_route_id_fkey",
+        "table_name": "deliveries",
+        "definition": "FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "delivery_boys_admin_id_fkey",
+        "table_name": "delivery_boys",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "delivery_boys_assigned_route_id_fkey",
+        "table_name": "delivery_boys",
+        "definition": "FOREIGN KEY (assigned_route_id) REFERENCES routes(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "delivery_boys_profile_id_fkey",
+        "table_name": "delivery_boys",
+        "definition": "FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "delivery_qr_login_tokens_admin_id_fkey",
+        "table_name": "delivery_qr_login_tokens",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "delivery_qr_login_tokens_created_by_fkey",
+        "table_name": "delivery_qr_login_tokens",
+        "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "delivery_qr_login_tokens_delivery_boy_id_fkey",
+        "table_name": "delivery_qr_login_tokens",
+        "definition": "FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "delivery_ratings_order_id_fkey",
+        "table_name": "delivery_ratings",
+        "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "invoice_items_delivery_id_fkey",
+        "table_name": "invoice_items",
+        "definition": "FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "invoice_items_invoice_id_fkey",
+        "table_name": "invoice_items",
+        "definition": "FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "invoices_admin_id_fkey",
+        "table_name": "invoices",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "invoices_customer_id_fkey",
+        "table_name": "invoices",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "fk_orders_dairy",
+        "table_name": "orders",
+        "definition": "FOREIGN KEY (dairy_id) REFERENCES dairies(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "payments_admin_id_fkey",
+        "table_name": "payments",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "payments_collected_by_fkey",
+        "table_name": "payments",
+        "definition": "FOREIGN KEY (collected_by) REFERENCES delivery_boys(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "payments_customer_id_fkey",
+        "table_name": "payments",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "payments_delivery_id_fkey",
+        "table_name": "payments",
+        "definition": "FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "payments_invoice_id_fkey",
+        "table_name": "payments",
+        "definition": "FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "points_transactions_order_id_fkey",
+        "table_name": "points_transactions",
+        "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "products_admin_id_fkey",
+        "table_name": "products",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "profiles_admin_id_fkey",
+        "table_name": "profiles",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "profiles_delivery_boy_id_fkey",
+        "table_name": "profiles",
+        "definition": "FOREIGN KEY (delivery_boy_id) REFERENCES delivery_boys(id) ON DELETE SET NULL"
+      },
+      {
+        "constraint_name": "profiles_id_fkey",
+        "table_name": "profiles",
+        "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "routes_admin_id_fkey",
+        "table_name": "routes",
+        "definition": "FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "user_roles_dairy_id_fkey",
+        "table_name": "user_roles",
+        "definition": "FOREIGN KEY (dairy_id) REFERENCES dairies(id) ON DELETE CASCADE"
+      },
+      {
+        "constraint_name": "user_roles_user_id_fkey",
+        "table_name": "user_roles",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      }
+    ]
+  },
+  {
+    "name": "rls_policies",
+    "rows": [
+      {
+        "tablename": "audit_log",
+        "policyname": "Super admins can view audit logs",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Customers can create subscription requests",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Customers can update their subscriptions",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Customers can view their subscriptions",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Dairy owners can create subscriptions",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Dairy owners can manage their dairy subscriptions",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Dairy owners can view their dairy subscriptions",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customer_subscriptions",
+        "policyname": "Super admins can manage all subscriptions",
+        "cmd": "ALL",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customers",
+        "policyname": "customers_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customers",
+        "policyname": "customers_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customers",
+        "policyname": "customers_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "customers",
+        "policyname": "customers_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "dairies",
+        "policyname": "Authenticated users can view their dairy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "dairies",
+        "policyname": "Dairy owners can update their dairy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "dairies",
+        "policyname": "Super admins can create dairies",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "dairies",
+        "policyname": "Super admins can manage all dairies",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "deliveries",
+        "policyname": "deliveries_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "deliveries",
+        "policyname": "deliveries_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "deliveries",
+        "policyname": "deliveries_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "deliveries",
+        "policyname": "deliveries_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_boys",
+        "policyname": "delivery_boys_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_boys",
+        "policyname": "delivery_boys_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_boys",
+        "policyname": "delivery_boys_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_boys",
+        "policyname": "delivery_boys_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_qr_login_tokens",
+        "policyname": "delivery_qr_tokens_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_qr_login_tokens",
+        "policyname": "delivery_qr_tokens_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_qr_login_tokens",
+        "policyname": "delivery_qr_tokens_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_ratings",
+        "policyname": "Customers can rate their completed orders",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_ratings",
+        "policyname": "Customers can view their own ratings",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_ratings",
+        "policyname": "Dairy owners can view their dairy ratings",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "delivery_ratings",
+        "policyname": "Super admins can manage all ratings",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoice_items",
+        "policyname": "invoice_items_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoice_items",
+        "policyname": "invoice_items_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoice_items",
+        "policyname": "invoice_items_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoice_items",
+        "policyname": "invoice_items_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoices",
+        "policyname": "invoices_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoices",
+        "policyname": "invoices_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoices",
+        "policyname": "invoices_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "invoices",
+        "policyname": "invoices_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "notifications",
+        "policyname": "Super admins can manage all notifications",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "notifications",
+        "policyname": "Users can update their own notifications",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "notifications",
+        "policyname": "Users can view their own notifications",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Customers can create their own orders",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Customers can view their own orders",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Dairy owners can manage their dairy orders",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Delivery boys can update assigned orders",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Delivery boys can view and update assigned orders",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "orders",
+        "policyname": "Super admins can manage all orders",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "payments",
+        "policyname": "payments_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "payments",
+        "policyname": "payments_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "payments",
+        "policyname": "payments_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "payments",
+        "policyname": "payments_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "points_transactions",
+        "policyname": "Customers can view their points history",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "points_transactions",
+        "policyname": "Super admins can manage all points transactions",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "products",
+        "policyname": "products_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "products",
+        "policyname": "products_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "products",
+        "policyname": "products_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "products",
+        "policyname": "products_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "push_subscriptions",
+        "policyname": "Super admins can view all subscriptions",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "push_subscriptions",
+        "policyname": "Users can delete their own subscriptions",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "push_subscriptions",
+        "policyname": "Users can insert their own subscriptions",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "push_subscriptions",
+        "policyname": "Users can view their own subscriptions",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "referrals",
+        "policyname": "Customers can create referrals",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "referrals",
+        "policyname": "Customers can view their referrals",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "referrals",
+        "policyname": "Super admins can manage all referrals",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "reward_history",
+        "policyname": "Customers can view their own reward history",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "reward_history",
+        "policyname": "Super admins can manage all reward history",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "routes",
+        "policyname": "routes_delete_policy",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "routes",
+        "policyname": "routes_insert_policy",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "routes",
+        "policyname": "routes_select_policy",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "routes",
+        "policyname": "routes_update_policy",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "system_settings",
+        "policyname": "Authenticated users can read system settings",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "system_settings",
+        "policyname": "Super admins can delete system settings",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "system_settings",
+        "policyname": "Super admins can insert system settings",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "system_settings",
+        "policyname": "Super admins can manage system settings",
+        "cmd": "ALL",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "system_settings",
+        "policyname": "Super admins can update system settings",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "user_roles",
+        "policyname": "Super admins can manage all user roles",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "user_roles",
+        "policyname": "Users can view their own roles",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "whatsapp_otp_requests",
+        "policyname": "otp_no_direct_delete",
+        "cmd": "DELETE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "whatsapp_otp_requests",
+        "policyname": "otp_no_direct_insert",
+        "cmd": "INSERT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "whatsapp_otp_requests",
+        "policyname": "otp_no_direct_select",
+        "cmd": "SELECT",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      },
+      {
+        "tablename": "whatsapp_otp_requests",
+        "policyname": "otp_no_direct_update",
+        "cmd": "UPDATE",
+        "roles": "{authenticated}",
+        "permissive": "PERMISSIVE"
+      }
+    ]
+  },
+  {
+    "name": "triggers",
+    "rows": [
+      {
+        "table_name": "customer_subscriptions",
+        "trigger_name": "update_subscriptions_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      },
+      {
+        "table_name": "customers",
+        "trigger_name": "set_customers_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "dairies",
+        "trigger_name": "update_dairies_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      },
+      {
+        "table_name": "deliveries",
+        "trigger_name": "set_deliveries_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "delivery_boys",
+        "trigger_name": "set_delivery_boys_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "delivery_qr_login_tokens",
+        "trigger_name": "set_delivery_qr_tokens_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "delivery_ratings",
+        "trigger_name": "update_delivery_ratings_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      },
+      {
+        "table_name": "invoices",
+        "trigger_name": "set_invoices_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "orders",
+        "trigger_name": "update_orders_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      },
+      {
+        "table_name": "payments",
+        "trigger_name": "set_payments_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "products",
+        "trigger_name": "set_products_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "profiles",
+        "trigger_name": "set_profiles_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "routes",
+        "trigger_name": "set_routes_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION set_updated_at()"
+      },
+      {
+        "table_name": "system_settings",
+        "trigger_name": "update_system_settings_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      },
+      {
+        "table_name": "user_roles",
+        "trigger_name": "update_user_roles_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+      }
+    ]
+  },
+  {
+    "name": "functions",
+    "rows": [
+      {
+        "function_name": "admin_create_delivery_qr_token",
+        "arguments": "p_delivery_boy_id uuid, p_raw_token text, p_expires_minutes integer, p_qr_label text"
+      },
+      {
+        "function_name": "admin_upsert_delivery_boy_account",
+        "arguments": "p_delivery_boy_id uuid, p_full_name text, p_email text, p_phone text, p_assigned_route_id uuid, p_active boolean"
+      },
+      {
+        "function_name": "consume_delivery_qr_token",
+        "arguments": "p_raw_token text, p_device_id text"
+      },
+      {
+        "function_name": "create_admin_profile",
+        "arguments": "p_full_name text, p_dairy_name text, p_email text, p_phone text"
+      },
+      {
+        "function_name": "create_delivery_boy_profile",
+        "arguments": "p_full_name text, p_email text, p_phone text, p_admin_access_code text"
+      },
+      {
+        "function_name": "create_whatsapp_otp_request",
+        "arguments": "p_phone text, p_otp text, p_purpose text, p_role text, p_admin_access_code text, p_ip_address text, p_device_id text"
+      },
+      {
+        "function_name": "current_admin_id",
+        "arguments": ""
+      },
+      {
+        "function_name": "current_user_role",
+        "arguments": ""
+      },
+      {
+        "function_name": "delivery_boy_add_extra_today_product",
+        "arguments": "p_delivery_id uuid, p_product_id uuid, p_quantity numeric"
+      },
+      {
+        "function_name": "delivery_boy_complete_today_deliveries",
+        "arguments": ""
+      },
+      {
+        "function_name": "delivery_boy_update_today_delivery",
+        "arguments": "p_delivery_id uuid, p_delivery_status text, p_payment_status text, p_skip_reason text"
+      },
+      {
+        "function_name": "delivery_boy_update_today_delivery",
+        "arguments": "p_delivery_id uuid, p_delivery_status text, p_payment_status text, p_skip_reason text, p_product_id uuid, p_quantity numeric"
+      },
+      {
+        "function_name": "generate_admin_access_code",
+        "arguments": ""
+      },
+      {
+        "function_name": "generate_monthly_invoices",
+        "arguments": "p_billing_month text, p_customer_id uuid, p_route_id uuid"
+      },
+      {
+        "function_name": "generate_otp_code",
+        "arguments": ""
+      },
+      {
+        "function_name": "generate_today_deliveries",
+        "arguments": ""
+      },
+      {
+        "function_name": "generate_today_deliveries",
+        "arguments": "p_delivery_date date, p_route_id uuid"
+      },
+      {
+        "function_name": "get_admin_by_verified_phone",
+        "arguments": "p_phone text"
+      },
+      {
+        "function_name": "normalize_indian_phone",
+        "arguments": "p_phone text"
+      },
+      {
+        "function_name": "set_updated_at",
+        "arguments": ""
+      },
+      {
+        "function_name": "verify_whatsapp_otp",
+        "arguments": "p_phone text, p_otp text"
+      }
+    ]
+  }
+]

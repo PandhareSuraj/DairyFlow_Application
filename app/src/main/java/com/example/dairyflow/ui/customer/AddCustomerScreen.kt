@@ -22,7 +22,11 @@ import com.example.dairyflow.ui.viewmodel.CustomersViewModel
 fun AddCustomerScreen(viewModel: CustomersViewModel, onSaved: () -> Unit, onBack: () -> Unit) {
     val saveState by viewModel.saveState.collectAsState()
     val routes by viewModel.routes.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadRoutes() }
+    val products by viewModel.products.collectAsState()
+    LaunchedEffect(Unit) {
+        viewModel.loadRoutes()
+        viewModel.loadProducts()
+    }
     Column(
         Modifier
             .fillMaxSize()
@@ -34,6 +38,7 @@ fun AddCustomerScreen(viewModel: CustomersViewModel, onSaved: () -> Unit, onBack
         CustomerFormCard(
             editing = null,
             routes = routes.data.orEmpty(),
+            products = products.data.orEmpty(),
             onSave = { customer -> viewModel.save(customer, onSaved) },
             onClear = onBack,
             primaryLabel = "Save Customer",

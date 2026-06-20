@@ -28,7 +28,10 @@ class PaymentRepository(
         "collected_by",
         "amount",
         "payment_date",
+        "payment_mode",
         "payment_method",
+        "transaction_id",
+        "received_at",
         "notes"
     )
 
@@ -37,6 +40,17 @@ class PaymentRepository(
             val adminId = supabase.requireAdminId(SupabaseTables.PAYMENTS, "select payments")
             supabase.from(SupabaseTables.PAYMENTS).select {
                 filter { eq("admin_id", adminId) }
+            }.decodeList<PaymentRow>().map { it.toPayment() }
+        }
+
+    suspend fun getPayments(customerId: String): List<Payment> =
+        loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "select customer payments") {
+            val adminId = supabase.requireAdminId(SupabaseTables.PAYMENTS, "select customer payments")
+            supabase.from(SupabaseTables.PAYMENTS).select {
+                filter {
+                    eq("admin_id", adminId)
+                    eq("customer_id", customerId)
+                }
             }.decodeList<PaymentRow>().map { it.toPayment() }
         }
 
@@ -56,13 +70,29 @@ class PaymentRepository(
             collectedBy = null,
             amount = amount,
             paymentDate = today(),
+            paymentType = "regular",
+            paymentMode = method.toColumnValue(),
             paymentMethod = method.toColumnValue(),
+            transactionId = transactionId?.takeIf { it.isNotBlank() },
+            receivedAt = nowIso(),
             notes = paymentNotes
         )
         loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "insert payment", paymentPayloadKeys) {
             supabase.from(SupabaseTables.PAYMENTS).insert(payment)
         }
         billingRepository.updatePaymentTotals(bill, amount)
+    }
+
+    suspend fun deletePayment(id: String) {
+        val adminId = supabase.requireAdminId(SupabaseTables.PAYMENTS, "delete payment")
+        loggedSupabaseCall("PaymentSaveError", SupabaseTables.PAYMENTS, "delete payment") {
+            supabase.from(SupabaseTables.PAYMENTS).delete {
+                filter {
+                    eq("id", id)
+                    eq("admin_id", adminId)
+                }
+            }
+        }
     }
 
     fun createUpiIntent(payeeVpa: String, payeeName: String, amount: Double, transactionNote: String): Intent {
@@ -91,7 +121,9 @@ class PaymentRepository(
             collectedBy = collectedBy,
             amount = amount,
             paymentDate = paymentDate,
-            paymentMethod = paymentMethod,
+            paymentType = paymentType ?: "regular",
+            paymentMethod = paymentMode ?: paymentMethod,
+            transactionId = transactionId,
             notes = notes,
             createdAt = createdAt,
             updatedAt = updatedAt
@@ -106,6 +138,9 @@ class PaymentRepository(
 
     private fun today(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+
+    private fun nowIso(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Calendar.getInstance().time)
 }
 
 class RazorpayGateway {

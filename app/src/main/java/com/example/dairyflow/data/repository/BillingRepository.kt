@@ -272,7 +272,7 @@ class BillingRepository(
                 "partial" -> BillStatus.PARTIAL
                 else -> BillStatus.UNPAID
             },
-            generatedAt = createdAt
+            generatedAt = generatedAt ?: createdAt
         )
     }
 

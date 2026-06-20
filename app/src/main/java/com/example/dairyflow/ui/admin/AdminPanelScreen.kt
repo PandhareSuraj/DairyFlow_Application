@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,6 +33,8 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,7 +49,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.dairyflow.BuildConfig
 import com.example.dairyflow.data.model.AdminCustomer
@@ -74,11 +79,13 @@ import com.example.dairyflow.ui.common.DairySummaryCard
 import com.example.dairyflow.ui.common.LoadingState
 import com.example.dairyflow.ui.common.MetricCard
 import com.example.dairyflow.ui.common.RefreshingState
+import com.example.dairyflow.ui.util.DateFormatter
 import com.example.dairyflow.ui.theme.DairyBlueSea
 import com.example.dairyflow.ui.theme.DairyGold
 import com.example.dairyflow.ui.theme.DairyGreen
 import com.example.dairyflow.ui.theme.DairyViolet
 import com.example.dairyflow.ui.viewmodel.AdminViewModel
+import com.example.dairyflow.ui.viewmodel.DeliveryBoyLiterStats
 import com.example.dairyflow.ui.viewmodel.currentMonth
 import com.example.dairyflow.ui.viewmodel.currentYear
 import com.example.dairyflow.ui.viewmodel.todayIsoDate
@@ -100,13 +107,25 @@ private enum class AdminSection(val label: String) {
 fun AdminPanelScreen(
     viewModel: AdminViewModel,
     startOnDeliveryBoys: Boolean = false,
+    startOnRoutes: Boolean = false,
     deliveryBoySetupOnly: Boolean = false,
-    onOpenQrGenerator: (String) -> Unit = {}
+    onOpenQrGenerator: (String) -> Unit = {},
+    onOpenDeliveryBoyPerformance: (String) -> Unit = {},
+    onOpenDeliveryBoyPayments: (String) -> Unit = {}
 ) {
-    var section by remember { mutableStateOf(if (startOnDeliveryBoys) AdminSection.DELIVERY_BOYS else AdminSection.DASHBOARD) }
+    var section by remember {
+        mutableStateOf(
+            when {
+                startOnRoutes -> AdminSection.ROUTES
+                startOnDeliveryBoys -> AdminSection.DELIVERY_BOYS
+                else -> AdminSection.DASHBOARD
+            }
+        )
+    }
     val dataState by viewModel.dataState.collectAsState()
     val dashboardState by viewModel.dashboardState.collectAsState()
     val generationState by viewModel.generationState.collectAsState()
+    val deliveryBoyStatsState by viewModel.deliveryBoyStatsState.collectAsState()
     LaunchedEffect(Unit) { viewModel.load() }
 
     LazyColumn(
@@ -117,7 +136,7 @@ fun AdminPanelScreen(
             DairyDashboardHeader(
                 title = if (section == AdminSection.DASHBOARD) "Operations Dashboard" else section.label,
                 subtitle = if (section == AdminSection.DASHBOARD) {
-                    "Today - ${todayIsoDate()}"
+                    "Today - ${DateFormatter.formatDate(todayIsoDate())}"
                 } else {
                     "Review and update ${section.label.lowercase()} records"
                 }
@@ -154,7 +173,15 @@ fun AdminPanelScreen(
                 RoutesContent(dataState.data.orEmpty(), viewModel)
             }
             AdminSection.DELIVERY_BOYS -> item {
-                DeliveryBoysContent(dataState.data.orEmpty(), viewModel, onOpenQrGenerator, compactForm = deliveryBoySetupOnly)
+                DeliveryBoysContent(
+                    dataState.data.orEmpty(),
+                    viewModel,
+                    onOpenQrGenerator,
+                    onOpenDeliveryBoyPerformance,
+                    onOpenDeliveryBoyPayments,
+                    statsByDeliveryBoy = deliveryBoyStatsState.data.orEmpty(),
+                    compactForm = deliveryBoySetupOnly
+                )
             }
             AdminSection.DELIVERIES -> item {
                 DeliveriesContent(dataState.data.orEmpty(), viewModel)
@@ -351,7 +378,18 @@ private fun ProductForm(editing: Product?, onSave: (Product) -> Unit) {
                 Switch(active, { active = it })
             }
             Button(onClick = {
-                onSave(Product(editing?.id, name, type, unit, price.toDoubleOrNull() ?: 0.0, stock.toDoubleOrNull() ?: 0.0, active, editing?.createdAt))
+                onSave(
+                    Product(
+                        id = editing?.id,
+                        productName = name,
+                        productType = type,
+                        unit = unit,
+                        pricePerUnit = price.toDoubleOrNull() ?: 0.0,
+                        stockQuantity = stock.toDoubleOrNull() ?: 0.0,
+                        isActive = active,
+                        createdAt = editing?.createdAt
+                    )
+                )
             }, enabled = name.isNotBlank()) { Text("Save product") }
         }
     }
@@ -493,13 +531,22 @@ private fun RouteForm(editing: AdminRoute?, onSave: (AdminRoute) -> Unit) {
 }
 
 @Composable
-private fun DeliveryBoysContent(data: AdminDataBundle, viewModel: AdminViewModel, onOpenQrGenerator: (String) -> Unit, compactForm: Boolean = false) {
+private fun DeliveryBoysContent(
+    data: AdminDataBundle,
+    viewModel: AdminViewModel,
+    onOpenQrGenerator: (String) -> Unit,
+    onOpenPerformance: (String) -> Unit,
+    onOpenPaymentCollection: (String) -> Unit,
+    statsByDeliveryBoy: Map<String, DeliveryBoyLiterStats>,
+    compactForm: Boolean = false
+) {
     var editing by remember { mutableStateOf<AdminDeliveryBoy?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         DeliveryBoyForm(editing, data, compact = compactForm) {
             viewModel.saveDeliveryBoy(it)
             editing = null
         }
+        if (compactForm) return@Column
         if (data.deliveryBoys.isEmpty()) {
             EmptyState("No delivery boys yet.")
             if (BuildConfig.DEBUG) {
@@ -513,23 +560,62 @@ private fun DeliveryBoysContent(data: AdminDataBundle, viewModel: AdminViewModel
         } else data.deliveryBoys.forEach { boy ->
             val assigned = data.customers.count { it.routeId == boy.assignedRouteId }
             val routeName = data.routes.firstOrNull { it.id == boy.assignedRouteId }?.routeName
-            EntityCard(
-                title = boy.name,
-                subtitle = listOf(
-                    boy.mobileNumber.orEmpty(),
-                    boy.email.orEmpty(),
-                    "Route: " + (routeName ?: "Not assigned"),
-                    "$assigned assigned customers"
-                ).filter { it.isNotBlank() }.joinToString(" | "),
-                active = boy.isActive,
-                onEdit = { editing = boy },
-                onDelete = { boy.id?.let(onOpenQrGenerator) },
-                editLabel = "Edit",
-                deleteLabel = "Login QR"
+            val stats = boy.id?.let { statsByDeliveryBoy[it] } ?: DeliveryBoyLiterStats()
+            DeliveryBoyActionCard(
+                boy = boy,
+                routeName = routeName,
+                assignedCustomerCount = assigned,
+                stats = stats,
+                onQr = { boy.id?.let(onOpenQrGenerator) },
+                onPerformance = { boy.id?.let(onOpenPerformance) },
+                onPaymentCollection = { boy.id?.let(onOpenPaymentCollection) },
+                onDetails = { editing = boy }
             )
         }
     }
 }
+
+@Composable
+private fun DeliveryBoyActionCard(
+    boy: AdminDeliveryBoy,
+    routeName: String?,
+    assignedCustomerCount: Int,
+    stats: DeliveryBoyLiterStats,
+    onQr: () -> Unit,
+    onPerformance: () -> Unit,
+    onPaymentCollection: () -> Unit,
+    onDetails: () -> Unit
+) {
+    Card {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(boy.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(if (boy.isActive) "Active" else "Inactive", style = MaterialTheme.typography.labelMedium)
+                }
+                IconButton(onClick = onQr, enabled = boy.id != null) {
+                    Icon(Icons.Filled.QrCode, contentDescription = "Login QR")
+                }
+            }
+            Text("Mobile: ${boy.mobileNumber?.takeIf { it.isNotBlank() } ?: "-"}")
+            Text("Route: ${routeName ?: "Not assigned"}")
+            Text("$assignedCustomerCount assigned customers | Today: ${formatLiters(stats.todayLiters)} | Month: ${formatLiters(stats.monthLiters)}")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onPerformance, enabled = boy.id != null, modifier = Modifier.weight(1f)) {
+                    Text("Performance")
+                }
+                OutlinedButton(onClick = onPaymentCollection, enabled = boy.id != null, modifier = Modifier.weight(1f)) {
+                    Text("Payment Collection")
+                }
+            }
+            OutlinedButton(onClick = onDetails, modifier = Modifier.fillMaxWidth()) {
+                Text("Details")
+            }
+        }
+    }
+}
+
+private fun formatLiters(liters: Double): String = "%.1f L".format(liters)
 
 @Composable
 private fun DeliveryBoyForm(editing: AdminDeliveryBoy?, data: AdminDataBundle, compact: Boolean = false, onSave: (AdminDeliveryBoy) -> Unit) {
@@ -651,7 +737,7 @@ private fun DeliveriesContent(data: AdminDataBundle, viewModel: AdminViewModel) 
             (deliveryBoy.isBlank() || it.deliveryBoyId == deliveryBoy)
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedTextField(date, { date = it }, label = { Text("Date yyyy-mm-dd") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(date, { date = it }, label = { Text("Date") }, modifier = Modifier.fillMaxWidth())
         IdChooser("Route filter", route, data.routes.mapNotNull { item -> item.id?.let { it to item.routeName } }.toMap()) { route = it }
         IdChooser("Product filter", product, data.products.mapNotNull { item -> item.id?.let { it to item.productName } }.toMap()) { product = it }
         IdChooser("Delivery boy filter", deliveryBoy, data.deliveryBoys.mapNotNull { item -> item.id?.let { it to item.name } }.toMap()) { deliveryBoy = it }
@@ -733,7 +819,7 @@ private fun InvoicesContent(data: AdminDataBundle, messages: List<String>, viewM
         if (data.invoices.isEmpty()) EmptyState("No invoices yet.") else data.invoices.forEach { invoice ->
             EntityCard(
                 title = invoice.invoiceNumber,
-                subtitle = "${invoice.billingMonth}/${invoice.billingYear} â€¢ total Rs ${invoice.totalBillAmount} â€¢ pending Rs ${invoice.pendingAmount} â€¢ ${invoice.invoiceStatus.name.lowercase()}",
+                subtitle = "${DateFormatter.formatBillingMonth(invoice.billingMonth, invoice.billingYear)} â€¢ total Rs ${invoice.totalBillAmount} â€¢ pending Rs ${invoice.pendingAmount} â€¢ ${invoice.invoiceStatus.name.lowercase()}",
                 active = invoice.invoiceStatus == InvoiceStatus.PAID,
                 onEdit = { selected = invoice },
                 onDelete = { viewModel.markInvoicePaid(invoice) },
@@ -758,12 +844,12 @@ private fun InvoiceDetailsDialog(invoice: Invoice, data: AdminDataBundle, viewMo
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text("Invoice: ${invoice.invoiceNumber}")
                 Text("Customer: ${customer?.fullName ?: invoice.customerId}")
-                Text("Billing: ${invoice.billingMonth}/${invoice.billingYear}")
+                Text("Billing: ${DateFormatter.formatBillingMonth(invoice.billingMonth, invoice.billingYear)}")
                 Text("Monthly amount: Rs ${invoice.monthlyDeliveryAmount}")
                 Text("Previous pending: Rs ${invoice.previousPendingAmount}")
                 Text("Paid: Rs ${invoice.paidAmount}")
                 Text("Final pending: Rs ${invoice.pendingAmount}")
-                Text("Due date: ${invoice.dueDate ?: "-"}")
+                Text("Due date: ${DateFormatter.formatDate(invoice.dueDate)}")
                 Text("Status: ${invoice.invoiceStatus.name.lowercase()}")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton({ }) { Text("Download PDF") }
@@ -832,7 +918,7 @@ private fun PaymentsContent(data: AdminDataBundle, viewModel: AdminViewModel) {
         if (data.payments.isEmpty()) EmptyState("No payment history.") else data.payments.forEach {
             Card {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Rs ${it.amount} â€¢ ${it.paymentMethod.name.lowercase()} â€¢ ${it.paymentDate}")
+                    Text("Rs ${it.amount} â€¢ ${it.paymentMethod.name.lowercase()} â€¢ ${DateFormatter.formatDateTime(it.paymentDate)}")
                     Text("Invoice ${it.invoiceId} â€¢ Txn ${it.transactionId ?: "-"}")
                 }
             }
@@ -843,7 +929,14 @@ private fun PaymentsContent(data: AdminDataBundle, viewModel: AdminViewModel) {
 @Composable
 private fun ReportsContent(data: AdminDataBundle) {
     val delivered = data.deliveries.count { it.status == AdminDeliveryStatus.DELIVERED }
-    val unpaid = data.deliveries.count { it.status == AdminDeliveryStatus.DELIVERED && data.payments.none { payment -> payment.customerId == it.customerId && payment.paymentDate == it.deliveryDate } }
+    val unpaid = data.deliveries.count {
+        it.status == AdminDeliveryStatus.DELIVERED &&
+            data.payments.none { payment ->
+                !payment.isAdvancePayment &&
+                    payment.customerId == it.customerId &&
+                    payment.paymentDate == it.deliveryDate
+            }
+    }
     val skipped = data.deliveries.count { it.status == AdminDeliveryStatus.SKIPPED }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -853,7 +946,7 @@ private fun ReportsContent(data: AdminDataBundle) {
         MetricCard("Skipped", "$skipped")
         data.deliveryBoys.forEach { boy ->
             val boyDeliveries = data.deliveries.filter { it.deliveryBoyId == boy.id }
-            val collections = data.payments.filter { it.transactionId == boy.id }.sumOf { it.amount }
+            val collections = data.payments.filter { it.collectedBy == boy.id && !it.isAdvancePayment }.sumOf { it.amount }
             Card {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(boy.name, style = MaterialTheme.typography.titleMedium)
@@ -929,7 +1022,8 @@ private fun EntityCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     editLabel: String = "Edit",
-    deleteLabel: String = "Delete"
+    deleteLabel: String = "Delete",
+    extraContent: @Composable (() -> Unit)? = null
 ) {
     var confirm by remember { mutableStateOf(false) }
     Card {
@@ -937,6 +1031,7 @@ private fun EntityCard(
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(subtitle, style = MaterialTheme.typography.bodyMedium)
             Text(if (active) "Active" else "Inactive", style = MaterialTheme.typography.labelMedium)
+            extraContent?.invoke()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onEdit) { Text(editLabel) }
                 OutlinedButton(onClick = { confirm = true }) { Text(deleteLabel) }

@@ -34,11 +34,8 @@ import com.example.dairyflow.ui.viewmodel.ProductViewModel
 fun AddProductScreen(viewModel: ProductViewModel, onSaved: () -> Unit, onBack: () -> Unit) {
     val saveState by viewModel.saveState.collectAsState()
     var name by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Milk") }
-    var unit by remember { mutableStateOf("Liter") }
+    var category by remember { mutableStateOf("Cow") }
     var price by remember { mutableStateOf("") }
-    var stock by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
     val errors = remember { mutableStateMapOf<String, String>() }
 
@@ -58,10 +55,8 @@ fun AddProductScreen(viewModel: ProductViewModel, onSaved: () -> Unit, onBack: (
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OptionDropdown("Category", category, listOf("Milk", "Curd", "Paneer", "Ghee", "Butter", "Other"), { category = it }, Modifier.fillMaxWidth())
+                OptionDropdown("Category", category, listOf("Cow", "Buffalo"), { category = it }, Modifier.fillMaxWidth())
                 errors["category"]?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                OptionDropdown("Unit", unit, listOf("Liter", "Kg", "Gram", "Packet", "Piece"), { unit = it }, Modifier.fillMaxWidth())
-                errors["unit"]?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 OutlinedTextField(
                     price,
                     { price = it },
@@ -71,14 +66,6 @@ fun AddProductScreen(viewModel: ProductViewModel, onSaved: () -> Unit, onBack: (
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    stock,
-                    { stock = it },
-                    label = { Text("Stock quantity optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(description, { description = it }, label = { Text("Description optional") }, modifier = Modifier.fillMaxWidth())
                 OptionDropdown("Status", status, listOf("active", "inactive"), { status = it }, Modifier.fillMaxWidth())
             }
         }
@@ -94,18 +81,23 @@ fun AddProductScreen(viewModel: ProductViewModel, onSaved: () -> Unit, onBack: (
                     val amount = price.toDoubleOrNull() ?: 0.0
                     if (name.isBlank()) errors["name"] = "Product name is required."
                     if (category.isBlank()) errors["category"] = "Category is required."
-                    if (unit.isBlank()) errors["unit"] = "Unit is required."
                     if (amount <= 0.0) errors["price"] = "Price must be positive."
                     if (errors.isEmpty()) {
                         viewModel.addProduct(
                             name = name.trim(),
                             category = category,
-                            unit = unit,
+                            unit = "Liter",
                             price = amount,
-                            stockQuantity = stock.toDoubleOrNull() ?: 0.0,
-                            description = description.trim().ifBlank { null },
+                            stockQuantity = 0.0,
+                            description = null,
                             status = status,
-                            onSaved = onSaved
+                            onSaved = {
+                                name = ""
+                                category = "Cow"
+                                price = ""
+                                status = "active"
+                                onSaved()
+                            }
                         )
                     }
                 },

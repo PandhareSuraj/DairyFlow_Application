@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$ProjectRef = "tdtyrgjdqoimbvgxewzr",
+    [string]$ProjectRef = "utzvslmzjdtwbhzrolje",
     [string]$DatabasePassword = $env:SUPABASE_DB_PASSWORD,
     [string]$AccessToken = $env:SUPABASE_ACCESS_TOKEN,
     [string]$MyOperatorBaseUrl = $(if ($env:MYOPERATOR_BASE_URL) { $env:MYOPERATOR_BASE_URL } else { $env:WHATSAPP_BASE_URL }),
