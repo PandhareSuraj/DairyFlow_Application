@@ -1,0 +1,528 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "blog": "Blog",
+    "backToLogin": "Back to Login",
+    "getStarted": "Get Started"
+  },
+  "announcement": {
+    "text": "🎉 Limited Time: Get 3 months free on annual plans",
+    "cta": "Claim Offer"
+  },
+  "hero": {
+    "badge": "AI-Powered Dairy Management",
+    "rating": "#1 Rated Dairy Management Platform",
+    "headline": "Transform Your",
+    "headlineHighlight": "Dairy Business",
+    "headlineSuffix": "with Smart Delivery",
+    "subheadline": "The complete platform for dairy owners, delivery teams, and customers. Streamline operations, boost efficiency, and delight customers.",
+    "ctaPrimary": "Get Started Free",
+    "ctaSecondary": "Watch Demo",
+    "watchDemo": "Watch 2-min Demo",
+    "noCreditCard": "No credit card required",
+    "freeTrial": "14-day free trial",
+    "cancelAnytime": "Cancel anytime",
+    "signedUpThisWeek": "dairies signed up this week",
+    "trust": {
+      "activeDairies": "Active Dairies",
+      "happyCustomers": "Happy Customers",
+      "onTimeRate": "On-Time Rate"
+    },
+    "stats": {
+      "deliveriesPerDay": "Deliveries/Day",
+      "happyCustomers": "Happy Customers",
+      "deliveryPartners": "Delivery Partners"
+    },
+    "testimonial": {
+      "quote": "DairyFlow cut our delivery errors by 80% in the first month.",
+      "author": "Rajesh Patil, Shree Gokul Dairy"
+    }
+  },
+  "trust": {
+    "trustedBy": "TRUSTED BY LEADING DAIRY BUSINESSES",
+    "certified": "Certified",
+    "compliant": "Compliant",
+    "reviews": "Reviews",
+    "rating": "Rating",
+    "ready": "Ready"
+  },
+  "roi": {
+    "title": "Calculate Your Savings",
+    "customers": "Number of Customers",
+    "dailyOrders": "Daily Orders",
+    "currentMissed": "Current Missed Delivery %",
+    "monthlyIncome": "Your Current Monthly Income",
+    "result": {
+      "title": "With DairyFlow, you could save:",
+      "monthly": "per month in operational costs",
+      "ofIncome": "of your income",
+      "weekly": "per week in manual work",
+      "reduction": "reduction in missed deliveries",
+      "hoursLabel": "hrs"
+    }
+  },
+  "liveActivity": {
+    "title": "Live Activity",
+    "completedDeliveries": "just completed {{count}} deliveries",
+    "addedCustomers": "added {{count}} new customers",
+    "achievedOnTime": "achieved 100% on-time this week"
+  },
+  "caseStudy": {
+    "title": "Success Stories",
+    "subtitle": "Real results from real dairy businesses using DairyFlow.",
+    "readStory": "Read Full Story",
+    "studies": [
+      {
+        "name": "Shree Gokul Dairy",
+        "location": "Nashik, Maharashtra",
+        "metric": "80%",
+        "metricLabel": "fewer complaints",
+        "quote": "DairyFlow transformed our operations completely."
+      },
+      {
+        "name": "FreshMilk Express",
+        "location": "Surat, Gujarat",
+        "metric": "2 hrs",
+        "metricLabel": "saved daily",
+        "quote": "Route optimization saves us hours every day."
+      },
+      {
+        "name": "Desi Farms",
+        "location": "Jaipur, Rajasthan",
+        "metric": "150+",
+        "metricLabel": "new customers",
+        "quote": "Customer satisfaction has never been higher."
+      }
+    ]
+  },
+  "problemSolution": {
+    "title": "Problems",
+    "titleSuffix": "We Solve",
+    "subtitle": "Traditional dairy management is inefficient. We transform challenges into opportunities.",
+    "items": [
+      {
+        "problem": "Manual order tracking on paper",
+        "solution": "Digital real-time order management"
+      },
+      {
+        "problem": "Missed deliveries and complaints",
+        "solution": "Smart route optimization with GPS"
+      },
+      {
+        "problem": "No customer loyalty tracking",
+        "solution": "Built-in loyalty points and tier system"
+      },
+      {
+        "problem": "Cash collection issues",
+        "solution": "Digital payment tracking"
+      },
+      {
+        "problem": "No analytics or insights",
+        "solution": "Comprehensive dashboard with reports"
+      }
+    ]
+  },
+  "features": {
+    "title": "Powerful Features for",
+    "titleHighlight": "Everyone",
+    "subtitle": "Tailored experiences for every user role. Explore what DairyFlow offers.",
+    "roles": {
+      "dairyOwner": "Dairy Owner",
+      "delivery": "Delivery Partner",
+      "customer": "Customer",
+      "admin": "Super Admin"
+    },
+    "dairyOwner": [
+      { "title": "Product Management", "description": "Easily manage your product catalog with pricing, stock levels, and variants." },
+      { "title": "Customer Database", "description": "Complete customer management with profiles, subscriptions, and order history." },
+      { "title": "Delivery Team", "description": "Assign, track, and manage your delivery personnel with real-time updates." },
+      { "title": "Route Optimization", "description": "AI-powered route planning to minimize time and maximize efficiency." },
+      { "title": "Analytics Dashboard", "description": "Comprehensive insights into revenue, orders, and business performance." },
+      { "title": "Notifications", "description": "Stay updated with real-time alerts for orders, deliveries, and issues." }
+    ],
+    "delivery": [
+      { "title": "Smart Routes", "description": "Optimized delivery routes with turn-by-turn navigation integration." },
+      { "title": "Real-Time Updates", "description": "Instant status updates for customers and dairy owners." },
+      { "title": "Earnings Tracker", "description": "Track your daily, weekly, and monthly earnings with detailed breakdowns." },
+      { "title": "GPS Navigation", "description": "Built-in navigation to each delivery location." },
+      { "title": "Order Alerts", "description": "Push notifications for new orders and schedule changes." },
+      { "title": "Performance Stats", "description": "View your delivery ratings and performance metrics." }
+    ],
+    "customer": [
+      { "title": "Subscriptions", "description": "Flexible subscription management with easy skip and pause options." },
+      { "title": "Order Tracking", "description": "Real-time tracking of your milk and dairy product deliveries." },
+      { "title": "Loyalty Rewards", "description": "Earn points on every order and redeem for exciting rewards." },
+      { "title": "Referral Program", "description": "Invite friends and earn bonus points when they join." },
+      { "title": "Delivery Alerts", "description": "Get notified when your delivery is on the way." },
+      { "title": "Rate & Review", "description": "Share feedback to help improve service quality." }
+    ],
+    "admin": [
+      { "title": "Multi-Dairy Management", "description": "Oversee multiple dairy operations from a single dashboard." },
+      { "title": "Platform Analytics", "description": "Platform-wide metrics and business intelligence." },
+      { "title": "User Management", "description": "Manage all users, roles, and permissions across the platform." },
+      { "title": "System Configuration", "description": "Configure platform settings, notifications, and integrations." },
+      { "title": "Security Controls", "description": "Advanced security settings and audit logs." },
+      { "title": "Health Monitoring", "description": "Real-time system health and performance monitoring." }
+    ]
+  },
+  "howItWorks": {
+    "title": "How It",
+    "titleHighlight": "Works",
+    "subtitle": "Get started in 5 simple steps. We make dairy management effortless.",
+    "steps": [
+      {
+        "title": "Sign Up & Setup",
+        "description": "Create your account and register your dairy business",
+        "details": ["Quick 2-minute registration", "Verify your business", "Choose your plan"]
+      },
+      {
+        "title": "Add Products & Team",
+        "description": "Configure your product catalog and onboard delivery staff",
+        "details": ["Add milk varieties & pricing", "Invite delivery partners", "Set delivery zones"]
+      },
+      {
+        "title": "Onboard Customers",
+        "description": "Import existing customers or let them self-register",
+        "details": ["Bulk import from Excel", "Customer self-registration", "Subscription setup"]
+      },
+      {
+        "title": "Start Deliveries",
+        "description": "Assign routes, track in real-time, and delight customers",
+        "details": ["AI route optimization", "Real-time tracking", "Digital proof of delivery"]
+      },
+      {
+        "title": "Grow with Insights",
+        "description": "Use analytics and loyalty programs to scale your business",
+        "details": ["Revenue analytics", "Customer insights", "Loyalty program management"]
+      }
+    ]
+  },
+  "demo": {
+    "title": "Experience",
+    "titleHighlight": "Smart Delivery",
+    "subtitle": "Drag to rotate and explore our intelligent delivery system in action.",
+    "features": [
+      { "label": "Real-time Tracking", "description": "Track every delivery in real-time" },
+      { "label": "Route Optimization", "description": "AI-powered route planning" },
+      { "label": "Customer Updates", "description": "Automatic delivery notifications" },
+      { "label": "Order Management", "description": "Seamless order processing" },
+      { "label": "Scheduling", "description": "Flexible delivery schedules" },
+      { "label": "Quality Assured", "description": "99.5% on-time delivery rate" }
+    ]
+  },
+  "stats": {
+    "title": "Trusted by",
+    "titleHighlight": "Thousands",
+    "subtitle": "Join the growing network of dairies transforming their business with DairyFlow.",
+    "items": {
+      "deliveriesCompleted": "Deliveries Completed",
+      "registeredDairies": "Registered Dairies",
+      "happyCustomers": "Happy Customers",
+      "onTimeRate": "On-Time Rate"
+    }
+  },
+  "testimonials": {
+    "title": "What Our",
+    "titleHighlight": "Users Say",
+    "subtitle": "Real stories from real users who transformed their dairy business.",
+    "items": [
+      {
+        "name": "Rajesh Kumar",
+        "role": "Dairy Owner",
+        "company": "Krishna Dairy Farm",
+        "quote": "DairyFlow transformed our operations. We reduced delivery complaints by 80% and increased customer retention significantly."
+      },
+      {
+        "name": "Priya Sharma",
+        "role": "Operations Manager",
+        "company": "Fresh Milk Co.",
+        "quote": "The route optimization alone saves us 2 hours daily. Our delivery partners love the mobile app."
+      },
+      {
+        "name": "Amit Patel",
+        "role": "Delivery Partner",
+        "company": "Patel Dairies",
+        "quote": "The app is so easy to use. I can see my route, earnings, and customer locations all in one place."
+      },
+      {
+        "name": "Sunita Devi",
+        "role": "Customer",
+        "company": "Loyal Customer",
+        "quote": "I love the loyalty points! The subscription management is so convenient. Never miss my morning milk."
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Simple, Transparent",
+    "titleHighlight": "Pricing",
+    "subtitle": "Choose the plan that fits your business. No hidden fees, cancel anytime.",
+    "billing": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "save": "Save 20%"
+    },
+    "mostPopular": "Most Popular",
+    "compare": "Compare Plans",
+    "limitedSpots": "Only 3 spots left this month",
+    "enterprise": {
+      "leadTitle": "Talk to Our Enterprise Team",
+      "leadDescription": "Get a custom quote for your dairy business",
+      "successMessage": "Our team will reach out within 24 hours"
+    },
+    "guarantee": {
+      "title": "30-Day Money-Back Guarantee",
+      "description": "Not satisfied? Get a full refund, no questions asked."
+    },
+    "comparison": {
+      "feature": "Feature",
+      "customers": "Customers",
+      "unlimited": "Unlimited",
+      "routeOptimization": "Route Optimization",
+      "basic": "Basic",
+      "aiPowered": "AI-Powered",
+      "aiCustom": "AI + Custom",
+      "support": "Support",
+      "emailSupport": "Email",
+      "prioritySupport": "24/7 Priority",
+      "dedicatedAM": "Dedicated AM",
+      "apiAccess": "API Access",
+      "whiteLabel": "White Label",
+      "multiLocation": "Multi-Location",
+      "customIntegrations": "Custom Integrations",
+      "slaGuarantee": "SLA Guarantee"
+    },
+    "tiers": {
+      "starter": {
+        "name": "Starter",
+        "description": "Perfect for small dairies just getting started",
+        "price": "Free",
+        "period": "forever",
+        "cta": "Start Free",
+        "features": [
+          "Up to 50 customers",
+          "Basic route management",
+          "Mobile app access",
+          "Email support",
+          "Basic analytics"
+        ]
+      },
+      "professional": {
+        "name": "Professional",
+        "description": "For growing dairy businesses",
+        "price": "₹999",
+        "yearlyPrice": "₹799",
+        "period": "/month",
+        "cta": "Start Trial",
+        "features": [
+          "Unlimited customers",
+          "AI route optimization",
+          "Advanced analytics",
+          "Loyalty program",
+          "Priority support",
+          "Custom branding",
+          "API access"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For large-scale operations",
+        "price": "Custom",
+        "period": "pricing",
+        "cta": "Contact Sales",
+        "features": [
+          "Everything in Professional",
+          "Multi-dairy management",
+          "Dedicated account manager",
+          "Custom integrations",
+          "SLA guarantee",
+          "On-premise option",
+          "White-label solution"
+        ]
+      }
+    }
+  },
+  "faq": {
+    "badge": "Got Questions?",
+    "title": "Frequently Asked",
+    "titleHighlight": "Questions",
+    "subtitle": "Everything you need to know about DairyFlow. Can't find an answer?",
+    "contactLink": "Contact our team",
+    "categories": {
+      "pricing": "Pricing",
+      "setup": "Setup",
+      "features": "Features",
+      "general": "General"
+    },
+    "items": [
+      {
+        "category": "pricing",
+        "question": "Is there a free trial available?",
+        "answer": "Yes! We offer a 14-day free trial with full access to all features. No credit card required. You can explore the platform, set up your dairy operations, and see the value before committing to a paid plan."
+      },
+      {
+        "category": "pricing",
+        "question": "What payment methods do you accept?",
+        "answer": "We accept all major credit cards, debit cards, UPI, net banking, and digital wallets. For enterprise customers, we also offer invoice-based billing with flexible payment terms."
+      },
+      {
+        "category": "pricing",
+        "question": "Can I change my plan later?",
+        "answer": "Absolutely! You can upgrade or downgrade your plan at any time. When upgrading, you get immediate access to new features. When downgrading, changes take effect at the next billing cycle."
+      },
+      {
+        "category": "pricing",
+        "question": "Are there any hidden fees?",
+        "answer": "No hidden fees whatsoever. The pricing you see is all-inclusive. There are no setup fees, no per-transaction charges, and no surprise costs. Everything is transparent."
+      },
+      {
+        "category": "setup",
+        "question": "How long does it take to get started?",
+        "answer": "You can be up and running in under 30 minutes! Simply create an account, add your products and delivery team, import your customer list (or add them manually), and you're ready to start deliveries."
+      },
+      {
+        "category": "setup",
+        "question": "Do I need any technical knowledge to set up?",
+        "answer": "Not at all! DairyFlow is designed to be user-friendly for everyone. Our intuitive interface guides you through each step, and our onboarding wizard makes setup a breeze. Plus, our support team is always ready to help."
+      },
+      {
+        "category": "setup",
+        "question": "Can I import my existing customer data?",
+        "answer": "Yes! You can easily import customer data from Excel spreadsheets or CSV files. Our smart import tool maps your columns automatically and handles duplicates. You can also sync with your existing systems via our API."
+      },
+      {
+        "category": "setup",
+        "question": "What devices and browsers are supported?",
+        "answer": "DairyFlow works on all modern browsers (Chrome, Firefox, Safari, Edge) and devices. Our mobile apps for delivery personnel work on both Android and iOS. The platform is fully responsive and works great on tablets too."
+      },
+      {
+        "category": "features",
+        "question": "How does the route optimization work?",
+        "answer": "Our AI-powered route optimization analyzes delivery locations, traffic patterns, time windows, and vehicle capacity to create the most efficient routes. This typically reduces delivery time by 30% and fuel costs by 25%."
+      },
+      {
+        "category": "features",
+        "question": "Can customers track their deliveries in real-time?",
+        "answer": "Yes! Customers receive real-time updates via push notifications and can track their delivery on a live map. They'll know exactly when their milk is on the way and when it's delivered."
+      },
+      {
+        "category": "features",
+        "question": "How does the loyalty program work?",
+        "answer": "Customers earn points on every purchase which they can redeem for discounts or free products. You can customize point values, create tier levels (Silver, Gold, Platinum), and set up special bonus events to boost engagement."
+      },
+      {
+        "category": "features",
+        "question": "Can I manage multiple dairy outlets?",
+        "answer": "Yes! Our Professional and Enterprise plans support multi-location management. You can oversee all outlets from a single dashboard, compare performance, and share resources like delivery personnel across locations."
+      },
+      {
+        "category": "general",
+        "question": "Is my data secure?",
+        "answer": "Absolutely. We use bank-grade encryption (256-bit SSL), regular security audits, and comply with data protection regulations. Your data is backed up daily and stored in secure, redundant data centers."
+      },
+      {
+        "category": "general",
+        "question": "What kind of support do you offer?",
+        "answer": "We offer multiple support channels: in-app chat support, email support, phone support (for Professional and above), and a comprehensive knowledge base. Enterprise customers also get a dedicated account manager."
+      },
+      {
+        "category": "general",
+        "question": "Can I integrate with other tools I use?",
+        "answer": "Yes! We offer integrations with popular accounting software (Tally, QuickBooks), payment gateways, SMS providers, and more. Our REST API also allows custom integrations with your existing systems."
+      }
+    ],
+    "stillHaveQuestions": {
+      "title": "Still have questions?",
+      "subtitle": "Our team is here to help. Reach out anytime and we'll get back to you within 24 hours.",
+      "emailSupport": "Email Support",
+      "liveChat": "Live Chat"
+    }
+  },
+  "cta": {
+    "badge": "Start Your Free Trial Today",
+    "title": "Ready to Transform Your",
+    "titleHighlight": "Dairy Business?",
+    "subtitle": "Join 500+ dairies already using DairyFlow. Set up in minutes, see results from day one.",
+    "emailPlaceholder": "Enter your email",
+    "submitButton": "Get Started",
+    "or": "or",
+    "successTitle": "You're on the list!",
+    "successMessage": "Check your email to complete registration.",
+    "signInLink": "Sign in to your account",
+    "trust": {
+      "secure": "Secure & Encrypted",
+      "uptime": "99.9% Uptime",
+      "support": "24/7 Support"
+    }
+  },
+  "stickyCTA": {
+    "text": "Ready to transform your dairy?",
+    "cta": "Start Free"
+  },
+  "socialProof": {
+    "from": "from",
+    "justNow": "Just now",
+    "actions": {
+      "startedTrial": "started their free trial",
+      "upgraded": "upgraded to Professional",
+      "completedDeliveries": "completed 100 deliveries",
+      "joined": "joined DairyFlow",
+    "savedMoney": "saved ₹45K this month"
+    }
+  },
+  "leadMagnet": {
+    "namePlaceholder": "Your full name",
+    "phonePlaceholder": "10-digit phone number",
+    "emailPlaceholder": "Email (optional)",
+    "privacyNote": "We respect your privacy. No spam, ever.",
+    "successTitle": "Thank you!",
+    "successMessage": "Our team will contact you shortly.",
+    "errorTitle": "Something went wrong. Please try again.",
+    "alreadyCaptured": "Thanks! We'll be in touch soon.",
+    "timed": {
+      "title": "Get Your Free Dairy Management Guide",
+      "description": "Enter your details to receive our comprehensive guide with tips from 500+ successful dairies.",
+      "cta": "Download Free Guide"
+    },
+    "exit": {
+      "title": "Wait! Don't miss 20% off",
+      "description": "Sign up now and get 20% off your first 3 months. Limited time offer!",
+      "cta": "Claim My Discount"
+    },
+    "hero": {
+      "cta": "Get Started Free"
+    },
+    "banner": {
+      "badge": "Free Demo Available",
+      "title": "Get a Personalized Demo Walkthrough",
+      "description": "See exactly how DairyFlow can transform your dairy operations. Our experts will walk you through every feature.",
+      "cta": "Book My Demo"
+    },
+    "gate": {
+      "title": "Unlock Your Savings Report",
+      "description": "Enter your details to see your personalized savings calculation.",
+      "cta": "Reveal My Savings"
+    }
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "loadingSection": "Loading section...",
+    "openMenu": "Open menu",
+    "dismissNotifications": "Dismiss notifications",
+    "dismiss": "Dismiss"
+  },
+  "footer": {
+    "tagline": "AI-powered dairy delivery management platform for modern dairy businesses.",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "about": "About Us",
+    "contact": "Contact",
+    "careers": "Careers",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "demo": "Demo",
+    "copyright": "All rights reserved."
+  }
+}

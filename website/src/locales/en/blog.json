@@ -1,0 +1,30 @@
+ {
+   "title": "DairyFlow Blog",
+   "subtitle": "Expert insights on dairy delivery, farm management, and building successful milk subscription businesses.",
+   "backToHome": "Back to Home",
+   "backToBlog": "Back to Blog",
+   "getStarted": "Get Started",
+   "searchPlaceholder": "Search articles...",
+   "articlesFound": "{{count}} article found",
+   "articlesFoundPlural": "{{count}} articles found",
+   "forQuery": "for \"{{query}}\"",
+   "inCategory": "in {{category}}",
+   "noArticles": "No articles found matching your criteria.",
+   "clearFilters": "Clear filters",
+   "previous": "Previous",
+   "next": "Next",
+   "minRead": "{{time}} min read",
+   "relatedArticles": "Related Articles",
+   "shareArticle": "Share this article:",
+   "home": "Home",
+   "blog": "Blog",
+   "copyright": "All rights reserved.",
+   "categories": {
+     "all": "All",
+     "dairyBusiness": "Dairy Business",
+     "deliveryOperations": "Delivery Operations",
+     "customerExperience": "Customer Experience",
+     "technology": "Technology",
+     "healthNutrition": "Health & Nutrition"
+   }
+ }

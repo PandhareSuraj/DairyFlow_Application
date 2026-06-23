@@ -1,0 +1,30 @@
+ {
+   "title": "मिल्करूट ब्लॉग",
+   "subtitle": "डेयरी डिलीवरी, फार्म प्रबंधन, और सफल दूध सब्सक्रिप्शन व्यवसाय बनाने पर विशेषज्ञ जानकारी।",
+   "backToHome": "होम पर वापस जाएं",
+   "backToBlog": "ब्लॉग पर वापस जाएं",
+   "getStarted": "शुरू करें",
+   "searchPlaceholder": "लेख खोजें...",
+   "articlesFound": "{{count}} लेख मिला",
+   "articlesFoundPlural": "{{count}} लेख मिले",
+   "forQuery": "\"{{query}}\" के लिए",
+   "inCategory": "{{category}} में",
+   "noArticles": "आपके मापदंडों से मेल खाने वाले कोई लेख नहीं मिले।",
+   "clearFilters": "फ़िल्टर साफ़ करें",
+   "previous": "पिछला",
+   "next": "अगला",
+   "minRead": "{{time}} मिनट पढ़ें",
+   "relatedArticles": "संबंधित लेख",
+   "shareArticle": "यह लेख शेयर करें:",
+   "home": "होम",
+   "blog": "ब्लॉग",
+   "copyright": "सर्वाधिकार सुरक्षित।",
+   "categories": {
+     "all": "सभी",
+     "dairyBusiness": "डेयरी व्यवसाय",
+     "deliveryOperations": "डिलीवरी संचालन",
+     "customerExperience": "ग्राहक अनुभव",
+     "technology": "तकनीक",
+     "healthNutrition": "स्वास्थ्य और पोषण"
+   }
+ }

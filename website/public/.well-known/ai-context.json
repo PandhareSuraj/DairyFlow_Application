@@ -1,0 +1,125 @@
+{
+  "name": "DairyFlow",
+  "tagline": "AI-Powered Dairy Delivery Management Platform",
+  "description": "India's leading milk delivery app and dairy management system for dairy owners, delivery teams, and customers.",
+  "url": "https://dairyflow.mywebz.in",
+  "llms_txt": "https://dairyflow.mywebz.in/llms.txt",
+  "llms_full_txt": "https://dairyflow.mywebz.in/llms-full.txt",
+  "industry": ["AgriTech", "Dairy Technology", "Last-Mile Delivery", "SaaS"],
+  "target_market": "India",
+  "languages": ["en", "hi", "mr"],
+  "keywords": {
+    "primary": [
+      "milk delivery app",
+      "dairy delivery software",
+      "dairy management system",
+      "milk subscription management",
+      "doodh delivery app",
+      "milk route optimization"
+    ],
+    "secondary": [
+      "dairy business software India",
+      "milk delivery tracking",
+      "dairy loyalty program",
+      "cold chain dairy management",
+      "dairy analytics",
+      "delivery boy management app",
+      "automated dairy billing",
+      "farm to doorstep milk"
+    ],
+    "vernacular_hindi": [
+      "दूध डिलीवरी ऐप",
+      "डेयरी प्रबंधन सॉफ्टवेयर",
+      "दूध सब्सक्रिप्शन",
+      "दूध वितरण",
+      "ऑनलाइन दूध ऑर्डर"
+    ],
+    "vernacular_marathi": [
+      "दूध वितरण अॅप",
+      "डेअरी व्यवस्थापन",
+      "दूध सदस्यता",
+      "घरपोच दूध"
+    ]
+  },
+  "features": {
+    "ai_route_optimization": {
+      "description": "AI-powered delivery route optimization reducing fuel costs by 20-30%",
+      "category": "Operations"
+    },
+    "subscription_management": {
+      "description": "Flexible milk subscription management with skip, pause, and custom schedules",
+      "category": "Core"
+    },
+    "real_time_tracking": {
+      "description": "GPS-based live delivery tracking with push notifications",
+      "category": "Customer Experience"
+    },
+    "loyalty_program": {
+      "description": "Multi-tier loyalty program with points, referrals, and milestone rewards",
+      "category": "Retention"
+    },
+    "multi_role_dashboards": {
+      "description": "Role-specific dashboards for Dairy Owner, Delivery Boy, Customer, and Super Admin",
+      "roles": ["dairy_owner", "delivery_boy", "customer", "super_admin"],
+      "category": "Core"
+    },
+    "analytics": {
+      "description": "Revenue trends, delivery performance, customer insights, and demand forecasting",
+      "category": "Business Intelligence"
+    },
+    "multi_language": {
+      "description": "Full localization in English, Hindi, and Marathi",
+      "supported_languages": ["en", "hi", "mr"],
+      "category": "Accessibility"
+    },
+    "pwa": {
+      "description": "Progressive Web App installable on any device with offline support",
+      "category": "Platform"
+    }
+  },
+  "pricing": {
+    "free_trial": {
+      "duration_days": 14,
+      "credit_card_required": false
+    },
+    "plans": [
+      {
+        "name": "Starter",
+        "price": "₹999/month",
+        "customers_limit": 100,
+        "delivery_boys_limit": 3
+      },
+      {
+        "name": "Professional",
+        "price": "₹2,499/month",
+        "customers_limit": 500,
+        "delivery_boys_limit": 10
+      },
+      {
+        "name": "Enterprise",
+        "price": "Custom",
+        "customers_limit": "Unlimited",
+        "delivery_boys_limit": "Unlimited"
+      }
+    ]
+  },
+  "urls": {
+    "homepage": "https://dairyflow.mywebz.in/",
+    "blog": "https://dairyflow.mywebz.in/blog",
+    "auth": "https://dairyflow.mywebz.in/auth",
+    "privacy": "https://dairyflow.mywebz.in/privacy",
+    "terms": "https://dairyflow.mywebz.in/terms",
+    "sitemap": "https://dairyflow.mywebz.in/sitemap.xml"
+  },
+  "contact": {
+    "email": "support@dairyflow.app"
+  },
+  "blog_categories": [
+    "Dairy Business Management",
+    "Milk Delivery Operations",
+    "Customer Experience",
+    "Technology & Innovation",
+    "Health & Nutrition"
+  ],
+  "blog_count": 20
+}

@@ -1,0 +1,30 @@
+ {
+   "title": "मिल्करूट ब्लॉग",
+   "subtitle": "डेअरी डिलिव्हरी, फार्म व्यवस्थापन आणि यशस्वी दूध सदस्यता व्यवसाय तयार करण्यावर तज्ञांची माहिती.",
+   "backToHome": "मुख्यपृष्ठावर परत",
+   "backToBlog": "ब्लॉगवर परत",
+   "getStarted": "सुरू करा",
+   "searchPlaceholder": "लेख शोधा...",
+   "articlesFound": "{{count}} लेख सापडला",
+   "articlesFoundPlural": "{{count}} लेख सापडले",
+   "forQuery": "\"{{query}}\" साठी",
+   "inCategory": "{{category}} मध्ये",
+   "noArticles": "तुमच्या निकषांशी जुळणारे कोणतेही लेख सापडले नाहीत.",
+   "clearFilters": "फिल्टर साफ करा",
+   "previous": "मागील",
+   "next": "पुढील",
+   "minRead": "{{time}} मिनिट वाचन",
+   "relatedArticles": "संबंधित लेख",
+   "shareArticle": "हा लेख शेअर करा:",
+   "home": "मुख्यपृष्ठ",
+   "blog": "ब्लॉग",
+   "copyright": "सर्व हक्क राखीव.",
+   "categories": {
+     "all": "सर्व",
+     "dairyBusiness": "डेअरी व्यवसाय",
+     "deliveryOperations": "डिलिव्हरी ऑपरेशन्स",
+     "customerExperience": "ग्राहक अनुभव",
+     "technology": "तंत्रज्ञान",
+     "healthNutrition": "आरोग्य आणि पोषण"
+   }
+ }
