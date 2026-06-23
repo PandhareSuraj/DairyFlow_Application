@@ -137,7 +137,7 @@ fun CustomerDeliveryChartScreen(customerId: String, viewModel: CustomerInsightsV
             onDismiss = { selectedDay = null },
             onRemoveHold = if (day.isHeld) {
                 {
-                    viewModel.removeCustomerHoldDate(customerId, day.date, month, year),m
+                    viewModel.removeCustomerHoldDate(customerId, day.date, month, year)
                     selectedDay = null
                 }
             } else {
