@@ -1,4 +1,5 @@
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+export const todayIso = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export const monthKey = (date = new Date()) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -71,6 +72,7 @@ export interface CustomerRow {
   price_per_liter?: number | null;
   opening_balance?: number | null;
   advance_payment?: number | null;
+  notes?: string | null;
   status?: string | null;
 }
 
