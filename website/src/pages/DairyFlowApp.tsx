@@ -10,8 +10,10 @@ import {
   LogOut,
   Milk,
   Package,
+  Pencil,
   Plus,
   RefreshCw,
+  Trash2,
   Truck,
   Users,
 } from "lucide-react";
@@ -27,6 +29,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   CustomerRow,
@@ -495,19 +507,76 @@ const ProductForm = ({ product, onDone, adminId }: { product?: ProductRow; onDon
 
 const ProductsSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData>; adminId: string }) => {
   const [open, setOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductRow | undefined>();
+  const [deletingProduct, setDeletingProduct] = useState<ProductRow | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const deleteMutation = useMutation({
+    mutationFn: async (product: ProductRow) => {
+      const { error } = await supabase
+        .from("products" as any)
+        .delete()
+        .eq("id", product.id)
+        .eq("admin_id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({ title: "Product deleted" });
+      setDeletingProduct(null);
+    },
+    onError: (error) => toast({
+      title: "Product was not deleted",
+      description: error instanceof Error
+        ? error.message
+        : String((error as { message?: string } | null)?.message || "Please try again."),
+      variant: "destructive",
+    }),
+  });
+
+  const confirmDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!deletingProduct) return;
+    try {
+      await deleteMutation.mutateAsync(deletingProduct);
+    } catch {
+      // The error toast is shown by the mutation and the dialog stays open.
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
         <div><CardTitle>Products</CardTitle><CardDescription>Product names and categories come from Supabase, not hardcoded lists.</CardDescription></div>
-        <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Add</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Add product</DialogTitle></DialogHeader><ProductForm adminId={adminId} onDone={() => setOpen(false)} /></DialogContent></Dialog>
+        <Button onClick={() => { setEditingProduct(undefined); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add</Button>
       </CardHeader>
       <CardContent>
         {!data.products.data?.length ? <EmptyState title="No products" description="Add cow or buffalo products to start customer assignments." /> : (
-          <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>
-            {data.products.data.map((product) => <TableRow key={product.id}><TableCell className="font-medium">{product.name}</TableCell><TableCell>{product.category}</TableCell><TableCell>{money(product.price)}</TableCell><TableCell>{liters(product.stock_quantity)}</TableCell><TableCell><Badge variant={statusTone(product.status) as any}>{product.status}</Badge></TableCell></TableRow>)}
+          <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+            {data.products.data.map((product) => <TableRow key={product.id}><TableCell className="font-medium">{product.name}</TableCell><TableCell>{product.category}</TableCell><TableCell>{money(product.price)}</TableCell><TableCell>{liters(product.stock_quantity)}</TableCell><TableCell><Badge variant={statusTone(product.status) as any}>{product.status}</Badge></TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => { setEditingProduct(product); setOpen(true); }} aria-label={`Edit ${product.name}`}><Pencil className="mr-2 h-4 w-4" />Edit</Button><Button size="sm" variant="destructive" onClick={() => setDeletingProduct(product)} aria-label={`Delete ${product.name}`}><Trash2 className="mr-2 h-4 w-4" />Delete</Button></div></TableCell></TableRow>)}
           </TableBody></Table>
         )}
       </CardContent>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingProduct ? "Edit product" : "Add product"}</DialogTitle></DialogHeader>
+          <ProductForm product={editingProduct} adminId={adminId} onDone={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={Boolean(deletingProduct)} onOpenChange={(isOpen) => { if (!isOpen && !deleteMutation.isPending) setDeletingProduct(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deletingProduct?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>This permanently removes the product. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleteMutation.isPending} onClick={confirmDelete}>
+              {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete product
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
