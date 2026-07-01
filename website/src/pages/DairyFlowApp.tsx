@@ -67,8 +67,7 @@ type Section =
   | "performance"
   | "deliveries"
   | "billing"
-  | "payments"
-  | "reports";
+  | "payments";
 
 const sections: Array<{ id: Section; label: string; icon: any }> = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -80,7 +79,6 @@ const sections: Array<{ id: Section; label: string; icon: any }> = [
   { id: "deliveries", label: "Deliveries", icon: CalendarCheck },
   { id: "billing", label: "Billing", icon: IndianRupee },
   { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "reports", label: "Reports", icon: Milk },
 ];
 
 const statusTone = (status?: string | null) => {
@@ -646,6 +644,9 @@ const DonutChartCard = ({
 const DashboardSection = ({ data, onNavigate }: { data: ReturnType<typeof useAdminData>; onNavigate: (section: Section) => void }) => {
   const today = todayIso();
   const todayDeliveries = (data.deliveries.data || []).filter((delivery) => delivery.delivery_date === today);
+  const delivered = (data.deliveries.data || []).filter((delivery) => delivery.delivery_status === "Delivered");
+  const cowMilkDelivered = delivered.filter((delivery) => (delivery.products?.category || delivery.customers?.product_category || delivery.customers?.milk_type) === "Cow").reduce((sum, delivery) => sum + Number(delivery.quantity || 0), 0);
+  const buffaloMilkDelivered = delivered.filter((delivery) => (delivery.products?.category || delivery.customers?.product_category || delivery.customers?.milk_type) === "Buffalo").reduce((sum, delivery) => sum + Number(delivery.quantity || 0), 0);
   const pendingAmount = (data.invoices.data || []).reduce((sum, invoice) => sum + Number(invoice.balance_amount || 0), 0);
   const monthlyCollection = (data.payments.data || [])
     .filter((payment) => payment.payment_date?.startsWith(monthKey()))
@@ -668,6 +669,12 @@ const DashboardSection = ({ data, onNavigate }: { data: ReturnType<typeof useAdm
         <StatCard title="Delivery boys" value={data.deliveryBoys.data?.length || 0} icon={Truck} />
         <StatCard title="Today deliveries" value={todayDeliveries.length} icon={CalendarCheck} />
         <StatCard title="Pending amount" value={money(pendingAmount)} icon={IndianRupee} hint={`Collected ${money(monthlyCollection)} this month`} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Cow milk delivered" value={liters(cowMilkDelivered)} icon={Milk} />
+        <StatCard title="Buffalo milk delivered" value={liters(buffaloMilkDelivered)} icon={Milk} />
+        <StatCard title="Pending payments" value={money(pendingAmount)} icon={IndianRupee} />
+        <StatCard title="Delivered records" value={delivered.length} icon={BarChart3} />
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {[
@@ -1528,15 +1535,6 @@ const PaymentsSection = ({ data, adminId }: { data: ReturnType<typeof useAdminDa
   return <div className="grid gap-4 xl:grid-cols-[400px_1fr]"><Card><CardHeader><CardTitle>Collect payment</CardTitle><CardDescription>Invoice, amount, transaction ID, and Cash/UPI behavior match Android.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => add.mutate(event)} className="space-y-4"><Field label="Invoice"><Select value={invoiceId} onValueChange={(value) => { setInvoiceId(value); const invoice = payableInvoices.find((item) => item.id === value); setAmount(invoice?.balance_amount ? String(invoice.balance_amount) : ""); }}><SelectTrigger><SelectValue placeholder="Select unpaid invoice" /></SelectTrigger><SelectContent>{payableInvoices.map((invoice) => <SelectItem key={invoice.id} value={invoice.id}>{invoice.invoice_number} - {money(invoice.balance_amount)}</SelectItem>)}</SelectContent></Select></Field><Field label="Amount"><Input name="amount" type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></Field><Field label="Transaction ID optional"><Input name="transaction_id" /></Field><Field label="Payment method"><Select name="payment_method" defaultValue="Cash"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Cash">Cash</SelectItem><SelectItem value="UPI">UPI</SelectItem></SelectContent></Select></Field><Button className="w-full" disabled={add.isPending || !invoiceId}>{add.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Record payment</Button></form></CardContent></Card><Card><CardHeader><CardTitle>Payment history</CardTitle></CardHeader><CardContent>{!data.payments.data?.length ? <EmptyState title="No payments" description="Record a payment against an invoice." /> : <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Customer</TableHead><TableHead>Invoice</TableHead><TableHead>Amount</TableHead><TableHead>Method</TableHead></TableRow></TableHeader><TableBody>{data.payments.data.map((payment) => <TableRow key={payment.id}><TableCell>{payment.payment_date}</TableCell><TableCell>{payment.customers?.full_name || payment.customer_id}</TableCell><TableCell>{payment.invoices?.invoice_number || payment.invoice_id || "Advance Payment"}</TableCell><TableCell>{money(payment.amount)}</TableCell><TableCell>{payment.payment_method}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card></div>;
 };
 
-const ReportsSection = ({ data }: { data: ReturnType<typeof useAdminData> }) => {
-  const deliveries = data.deliveries.data || [];
-  const delivered = deliveries.filter((delivery) => delivery.delivery_status === "Delivered");
-  const cow = delivered.filter((delivery) => (delivery.products?.category || delivery.customers?.product_category || delivery.customers?.milk_type) === "Cow").reduce((sum, delivery) => sum + Number(delivery.quantity || 0), 0);
-  const buffalo = delivered.filter((delivery) => (delivery.products?.category || delivery.customers?.product_category || delivery.customers?.milk_type) === "Buffalo").reduce((sum, delivery) => sum + Number(delivery.quantity || 0), 0);
-  const pending = (data.invoices.data || []).reduce((sum, invoice) => sum + Number(invoice.balance_amount || 0), 0);
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard title="Cow milk delivered" value={liters(cow)} icon={Milk} /><StatCard title="Buffalo milk delivered" value={liters(buffalo)} icon={Milk} /><StatCard title="Pending payments" value={money(pending)} icon={IndianRupee} /><StatCard title="Delivered records" value={delivered.length} icon={BarChart3} /></div>;
-};
-
 const PerformanceSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData>; adminId: string }) => {
   const queryClient = useQueryClient();
   const [selectedBoy, setSelectedBoy] = useState<string>(data.deliveryBoys.data?.[0]?.id || "");
@@ -1661,7 +1659,6 @@ const AdminPortal = () => {
           {section === "deliveries" && <DeliveriesSection data={data} adminId={adminId} />}
           {section === "billing" && <BillingSection data={data} adminId={adminId} />}
           {section === "payments" && <PaymentsSection data={data} adminId={adminId} />}
-          {section === "reports" && <ReportsSection data={data} />}
         </>
       )}
     </Shell>
