@@ -716,9 +716,8 @@ const ProductForm = ({ product, onDone, adminId }: { product?: ProductRow; onDon
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const mutation = useMutation({
-    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const form = new FormData(event.currentTarget);
+    mutationFn: async (formElement: HTMLFormElement) => {
+      const form = new FormData(formElement);
       const name = String(form.get("name") || "").trim();
       const price = numberValue(form.get("price"));
       if (!name) throw new Error("Product name is required.");
@@ -748,7 +747,7 @@ const ProductForm = ({ product, onDone, adminId }: { product?: ProductRow; onDon
   });
 
   return (
-    <form onSubmit={(event) => mutation.mutate(event)} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={(event) => { event.preventDefault(); mutation.mutate(event.currentTarget); }} className="grid gap-4 sm:grid-cols-2">
       <Field label="Product name"><Input name="name" defaultValue={product?.name} required /></Field>
       <Field label="Category"><Select name="category" defaultValue={product?.category || "Cow"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Cow">Cow</SelectItem><SelectItem value="Buffalo">Buffalo</SelectItem></SelectContent></Select></Field>
       <Field label="Price"><Input name="price" type="number" min="0.01" step="0.01" defaultValue={product?.price || ""} required /></Field>
@@ -989,9 +988,8 @@ const CustomerForm = ({ customer, data, adminId, onDone }: { customer?: Customer
   }, [categoryProducts, productId]);
 
   const mutation = useMutation({
-    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const form = new FormData(event.currentTarget);
+    mutationFn: async (formElement: HTMLFormElement) => {
+      const form = new FormData(formElement);
       const fullName = String(form.get("full_name") || "").trim();
       const phone = String(form.get("phone") || "").replace(/\D/g, "").slice(-10);
       const dailyQuantity = numberValue(form.get("daily_quantity"));
@@ -1085,7 +1083,7 @@ const CustomerForm = ({ customer, data, adminId, onDone }: { customer?: Customer
   });
 
   return (
-    <form onSubmit={(event) => mutation.mutate(event)} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
+    <form onSubmit={(event) => { event.preventDefault(); mutation.mutate(event.currentTarget); }} className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
       <Field label="Customer full name"><Input name="full_name" defaultValue={customer?.full_name} required /></Field>
       <Field label="Mobile number"><Input name="phone" inputMode="numeric" maxLength={10} defaultValue={customer?.phone?.slice(-10) || ""} required /></Field>
       <div className="sm:col-span-2"><Field label="Address"><Textarea name="address" defaultValue={customer?.address || ""} /></Field></div>
@@ -1145,9 +1143,8 @@ const CustomersSection = ({ data, adminId }: { data: ReturnType<typeof useAdminD
   };
 
   const holdMutation = useMutation({
-    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const form = new FormData(event.currentTarget);
+    mutationFn: async (formElement: HTMLFormElement) => {
+      const form = new FormData(formElement);
       const customerId = String(form.get("customer_id"));
       const fromDate = String(form.get("from_date"));
       const toDate = String(form.get("to_date"));
@@ -1232,7 +1229,7 @@ const CustomersSection = ({ data, adminId }: { data: ReturnType<typeof useAdminD
       <Card>
         <CardHeader><CardTitle>Hold customer</CardTitle><CardDescription>Hold days are excluded by the Android invoice generation RPC.</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(event) => holdMutation.mutate(event)} className="grid gap-3 md:grid-cols-5">
+          <form onSubmit={(event) => { event.preventDefault(); holdMutation.mutate(event.currentTarget); }} className="grid gap-3 md:grid-cols-5">
             <Select name="customer_id" required><SelectTrigger><SelectValue placeholder="Customer" /></SelectTrigger><SelectContent>{data.customers.data?.map((customer) => <SelectItem key={customer.id} value={customer.id}>{customer.full_name}</SelectItem>)}</SelectContent></Select>
             <Input name="from_date" type="date" required />
             <Input name="to_date" type="date" required />
