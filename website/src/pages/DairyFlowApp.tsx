@@ -13,6 +13,7 @@ import {
   Package,
   Pencil,
   Plus,
+  QrCode,
   RefreshCw,
   Trash2,
   Truck,
@@ -842,6 +843,9 @@ const ProductsSection = ({ data, adminId }: { data: ReturnType<typeof useAdminDa
 const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData>; adminId: string }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [viewingRoute, setViewingRoute] = useState<RouteRow | null>(null);
+  const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null);
+  const [deletingRoute, setDeletingRoute] = useState<RouteRow | null>(null);
   const addRoute = useMutation({
     mutationFn: async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -865,6 +869,49 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
     },
     onError: (error) => toast({ title: "Route was not saved", description: mutationErrorMessage(error), variant: "destructive" }),
   });
+  const updateRoute = useMutation({
+    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!editingRoute) throw new Error("No route selected.");
+      const form = new FormData(event.currentTarget);
+      const routeName = String(form.get("route_name") || "").trim();
+      if (!routeName) throw new Error("Route name is required.");
+      const { error } = await supabase.from("routes" as any).update({
+        route_name: routeName,
+        area: textValue(form.get("area")),
+        status: String(form.get("status") || "active"),
+      }).eq("id", editingRoute.id).eq("admin_id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
+      toast({ title: "Route updated" });
+      setEditingRoute(null);
+    },
+    onError: (error) => toast({ title: "Route was not updated", description: mutationErrorMessage(error), variant: "destructive" }),
+  });
+  const deleteRoute = useMutation({
+    mutationFn: async (route: RouteRow) => {
+      const { error } = await supabase.from("routes" as any).delete().eq("id", route.id).eq("admin_id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
+      toast({ title: "Route deleted" });
+      setDeletingRoute(null);
+    },
+    onError: (error) => toast({ title: "Route was not deleted", description: mutationErrorMessage(error), variant: "destructive" }),
+  });
+
+  const confirmRouteDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!deletingRoute) return;
+    try {
+      await deleteRoute.mutateAsync(deletingRoute);
+    } catch {
+      // The mutation toast explains the database error and the dialog stays open.
+    }
+  };
 
   return (
     <div className="grid gap-4 xl:grid-cols-[380px_1fr]">
@@ -883,11 +930,31 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
         <CardHeader><CardTitle>Routes</CardTitle><CardDescription>Routes available for customer and delivery-boy assignment.</CardDescription></CardHeader>
         <CardContent>
           {!data.routes.data?.length ? <EmptyState title="No routes" description="Create a route before assigning customers or delivery boys." /> : (
-            <Table><TableHeader><TableRow><TableHead>Route</TableHead><TableHead>Area / notes</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>
-              {data.routes.data.map((route) => <TableRow key={route.id}><TableCell className="font-medium">{route.route_name}</TableCell><TableCell>{route.area || "-"}</TableCell><TableCell><Badge variant={statusTone(route.status) as any}>{route.status || "active"}</Badge></TableCell></TableRow>)}
+            <Table><TableHeader><TableRow><TableHead>Route</TableHead><TableHead>Area / notes</TableHead><TableHead>Status</TableHead><TableHead className="w-32 text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+              {data.routes.data.map((route) => <TableRow key={route.id}><TableCell className="font-medium">{route.route_name}</TableCell><TableCell>{route.area || "-"}</TableCell><TableCell><Badge variant={statusTone(route.status) as any}>{route.status || "active"}</Badge></TableCell><TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setViewingRoute(route)} aria-label={`View ${route.route_name}`} title="View route"><Eye /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingRoute(route)} aria-label={`Edit ${route.route_name}`} title="Edit route"><Pencil /></Button><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeletingRoute(route)} aria-label={`Delete ${route.route_name}`} title="Delete route"><Trash2 /></Button></div></TableCell></TableRow>)}
             </TableBody></Table>
           )}
         </CardContent>
+        <Dialog open={Boolean(viewingRoute)} onOpenChange={(isOpen) => { if (!isOpen) setViewingRoute(null); }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Route details</DialogTitle></DialogHeader>
+            {viewingRoute && <div className="grid gap-5 sm:grid-cols-2"><DetailItem label="Route name" value={viewingRoute.route_name} /><DetailItem label="Status" value={viewingRoute.status || "active"} /><div className="sm:col-span-2"><DetailItem label="Area / notes" value={viewingRoute.area} /></div></div>}
+          </DialogContent>
+        </Dialog>
+        <Dialog open={Boolean(editingRoute)} onOpenChange={(isOpen) => { if (!isOpen && !updateRoute.isPending) setEditingRoute(null); }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit route</DialogTitle></DialogHeader>
+            {editingRoute && <form onSubmit={(event) => updateRoute.mutate(event)} className="space-y-4">
+              <Field label="Route name"><Input name="route_name" defaultValue={editingRoute.route_name} required /></Field>
+              <Field label="Area / notes"><Textarea name="area" defaultValue={editingRoute.area || ""} /></Field>
+              <Field label="Status"><Select name="status" defaultValue={editingRoute.status || "active"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></Field>
+              <Button className="w-full" disabled={updateRoute.isPending}>{updateRoute.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Update route</Button>
+            </form>}
+          </DialogContent>
+        </Dialog>
+        <AlertDialog open={Boolean(deletingRoute)} onOpenChange={(isOpen) => { if (!isOpen && !deleteRoute.isPending) setDeletingRoute(null); }}>
+          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete {deletingRoute?.route_name}?</AlertDialogTitle><AlertDialogDescription>This permanently removes the route. Assigned customers or delivery boys may prevent deletion.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleteRoute.isPending}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleteRoute.isPending} onClick={confirmRouteDelete}>{deleteRoute.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete route</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+        </AlertDialog>
       </Card>
     </div>
   );
@@ -1178,6 +1245,9 @@ const DeliveryBoysSection = ({ data, adminId }: { data: ReturnType<typeof useAdm
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [qr, setQr] = useState<string | null>(null);
+  const [viewingBoy, setViewingBoy] = useState<DeliveryBoyRow | null>(null);
+  const [editingBoy, setEditingBoy] = useState<DeliveryBoyRow | null>(null);
+  const [deletingBoy, setDeletingBoy] = useState<DeliveryBoyRow | null>(null);
   const addMutation = useMutation({
     mutationFn: async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -1198,6 +1268,51 @@ const DeliveryBoysSection = ({ data, adminId }: { data: ReturnType<typeof useAdm
     },
     onError: (error) => toast({ title: "Delivery boy was not saved", description: mutationErrorMessage(error), variant: "destructive" }),
   });
+  const updateMutation = useMutation({
+    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!editingBoy) throw new Error("No delivery boy selected.");
+      const form = new FormData(event.currentTarget);
+      const fullName = String(form.get("full_name") || "").trim();
+      const assignedRoute = String(form.get("assigned_route_id") || "none");
+      if (!fullName) throw new Error("Full name is required.");
+      const { error } = await supabase.from("delivery_boys" as any).update({
+        full_name: fullName,
+        phone: textValue(form.get("phone")),
+        email: textValue(form.get("email")),
+        assigned_route_id: assignedRoute === "none" ? null : assignedRoute,
+        status: String(form.get("status") || "active"),
+      }).eq("id", editingBoy.id).eq("admin_id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delivery-boys"] });
+      toast({ title: "Delivery boy updated" });
+      setEditingBoy(null);
+    },
+    onError: (error) => toast({ title: "Delivery boy was not updated", description: mutationErrorMessage(error), variant: "destructive" }),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: async (boy: DeliveryBoyRow) => {
+      const { error } = await supabase.from("delivery_boys" as any).delete().eq("id", boy.id).eq("admin_id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delivery-boys"] });
+      toast({ title: "Delivery boy deleted" });
+      setDeletingBoy(null);
+    },
+    onError: (error) => toast({ title: "Delivery boy was not deleted", description: mutationErrorMessage(error), variant: "destructive" }),
+  });
+  const confirmBoyDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!deletingBoy) return;
+    try {
+      await deleteMutation.mutateAsync(deletingBoy);
+    } catch {
+      // The mutation toast explains the database error and the dialog stays open.
+    }
+  };
   const qrMutation = useMutation({
     mutationFn: async (boyId: string) => {
       const rawToken = generateQrRawToken();
@@ -1223,7 +1338,11 @@ const DeliveryBoysSection = ({ data, adminId }: { data: ReturnType<typeof useAdm
   return (
     <div className="grid gap-4 xl:grid-cols-[380px_1fr]">
       <Card><CardHeader><CardTitle>Add delivery boy</CardTitle></CardHeader><CardContent><form onSubmit={(event) => addMutation.mutate(event)} className="space-y-3"><Input name="full_name" placeholder="Full name" required /><Input name="phone" placeholder="Phone" /><Input name="email" type="email" placeholder="Email" /><Select name="assigned_route_id"><SelectTrigger><SelectValue placeholder="Route" /></SelectTrigger><SelectContent>{data.routes.data?.map((route) => <SelectItem key={route.id} value={route.id}>{route.route_name}</SelectItem>)}</SelectContent></Select><Button className="w-full">Save</Button></form></CardContent></Card>
-      <Card><CardHeader><CardTitle>Delivery boys</CardTitle><CardDescription>Assign routes, generate QR login, and open performance from the sidebar.</CardDescription></CardHeader><CardContent>{!data.deliveryBoys.data?.length ? <EmptyState title="No delivery boys" description="Add delivery boys and assign a route." /> : <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Route</TableHead><TableHead>Status</TableHead><TableHead>QR</TableHead></TableRow></TableHeader><TableBody>{data.deliveryBoys.data.map((boy) => <TableRow key={boy.id}><TableCell className="font-medium">{boy.full_name}<div className="text-xs text-muted-foreground">{boy.phone}</div></TableCell><TableCell>{data.routes.data?.find((route) => route.id === boy.assigned_route_id)?.route_name || "Unassigned"}</TableCell><TableCell><Badge variant={statusTone(boy.status) as any}>{boy.status}</Badge></TableCell><TableCell><Button size="sm" variant="outline" onClick={() => qrMutation.mutate(boy.id)}>Generate</Button></TableCell></TableRow>)}</TableBody></Table>}{qr && <pre className="mt-4 max-h-44 overflow-auto rounded-md bg-muted p-3 text-xs">{qr}</pre>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Delivery boys</CardTitle><CardDescription>Assign routes, generate QR login, and open performance from the sidebar.</CardDescription></CardHeader><CardContent>{!data.deliveryBoys.data?.length ? <EmptyState title="No delivery boys" description="Add delivery boys and assign a route." /> : <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Route</TableHead><TableHead>Status</TableHead><TableHead className="w-16 text-center">QR</TableHead><TableHead className="w-32 text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{data.deliveryBoys.data.map((boy) => <TableRow key={boy.id}><TableCell className="font-medium">{boy.full_name}<div className="text-xs text-muted-foreground">{boy.phone}</div></TableCell><TableCell>{data.routes.data?.find((route) => route.id === boy.assigned_route_id)?.route_name || "Unassigned"}</TableCell><TableCell><Badge variant={statusTone(boy.status) as any}>{boy.status}</Badge></TableCell><TableCell><div className="flex justify-center"><Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => qrMutation.mutate(boy.id)} disabled={qrMutation.isPending} aria-label={`Generate QR for ${boy.full_name}`} title="Generate QR"><QrCode /></Button></div></TableCell><TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setViewingBoy(boy)} aria-label={`View ${boy.full_name}`} title="View delivery boy"><Eye /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingBoy(boy)} aria-label={`Edit ${boy.full_name}`} title="Edit delivery boy"><Pencil /></Button><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeletingBoy(boy)} aria-label={`Delete ${boy.full_name}`} title="Delete delivery boy"><Trash2 /></Button></div></TableCell></TableRow>)}</TableBody></Table>}{qr && <pre className="mt-4 max-h-44 overflow-auto rounded-md bg-muted p-3 text-xs">{qr}</pre>}</CardContent>
+        <Dialog open={Boolean(viewingBoy)} onOpenChange={(isOpen) => { if (!isOpen) setViewingBoy(null); }}><DialogContent><DialogHeader><DialogTitle>Delivery boy details</DialogTitle></DialogHeader>{viewingBoy && <div className="grid gap-5 sm:grid-cols-2"><DetailItem label="Full name" value={viewingBoy.full_name} /><DetailItem label="Phone" value={viewingBoy.phone} /><DetailItem label="Email" value={viewingBoy.email} /><DetailItem label="Status" value={viewingBoy.status} /><div className="sm:col-span-2"><DetailItem label="Assigned route" value={data.routes.data?.find((route) => route.id === viewingBoy.assigned_route_id)?.route_name || "Unassigned"} /></div></div>}</DialogContent></Dialog>
+        <Dialog open={Boolean(editingBoy)} onOpenChange={(isOpen) => { if (!isOpen && !updateMutation.isPending) setEditingBoy(null); }}><DialogContent><DialogHeader><DialogTitle>Edit delivery boy</DialogTitle></DialogHeader>{editingBoy && <form onSubmit={(event) => updateMutation.mutate(event)} className="space-y-4"><Field label="Full name"><Input name="full_name" defaultValue={editingBoy.full_name} required /></Field><Field label="Phone"><Input name="phone" defaultValue={editingBoy.phone || ""} /></Field><Field label="Email"><Input name="email" type="email" defaultValue={editingBoy.email || ""} /></Field><Field label="Route"><Select name="assigned_route_id" defaultValue={editingBoy.assigned_route_id || "none"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Unassigned</SelectItem>{data.routes.data?.map((route) => <SelectItem key={route.id} value={route.id}>{route.route_name}</SelectItem>)}</SelectContent></Select></Field><Field label="Status"><Select name="status" defaultValue={editingBoy.status || "active"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></Field><Button className="w-full" disabled={updateMutation.isPending}>{updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Update delivery boy</Button></form>}</DialogContent></Dialog>
+        <AlertDialog open={Boolean(deletingBoy)} onOpenChange={(isOpen) => { if (!isOpen && !deleteMutation.isPending) setDeletingBoy(null); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete {deletingBoy?.full_name}?</AlertDialogTitle><AlertDialogDescription>This permanently removes the delivery boy. Existing delivery records may prevent deletion.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleteMutation.isPending} onClick={confirmBoyDelete}>{deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete delivery boy</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      </Card>
     </div>
   );
 };
