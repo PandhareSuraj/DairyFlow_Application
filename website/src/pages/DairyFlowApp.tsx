@@ -854,9 +854,7 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
   const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null);
   const [deletingRoute, setDeletingRoute] = useState<RouteRow | null>(null);
   const addRoute = useMutation({
-    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const formElement = event.currentTarget;
+    mutationFn: async (formElement: HTMLFormElement) => {
       const form = new FormData(formElement);
       const routeName = String(form.get("route_name") || "").trim();
       if (!routeName) throw new Error("Route name is required.");
@@ -877,10 +875,9 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
     onError: (error) => toast({ title: "Route was not saved", description: mutationErrorMessage(error), variant: "destructive" }),
   });
   const updateRoute = useMutation({
-    mutationFn: async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+    mutationFn: async (formElement: HTMLFormElement) => {
       if (!editingRoute) throw new Error("No route selected.");
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       const routeName = String(form.get("route_name") || "").trim();
       if (!routeName) throw new Error("Route name is required.");
       const { error } = await supabase.from("routes" as any).update({
@@ -925,7 +922,7 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
       <Card>
         <CardHeader><CardTitle>Add route</CardTitle><CardDescription>Same route fields used by the Android app.</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(event) => addRoute.mutate(event)} className="space-y-4">
+          <form onSubmit={(event) => { event.preventDefault(); addRoute.mutate(event.currentTarget); }} className="space-y-4">
             <Field label="Route name"><Input name="route_name" required /></Field>
             <Field label="Area / notes"><Textarea name="area" /></Field>
             <Field label="Status"><Select name="status" defaultValue="active"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></Field>
@@ -951,7 +948,7 @@ const RoutesSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData
         <Dialog open={Boolean(editingRoute)} onOpenChange={(isOpen) => { if (!isOpen && !updateRoute.isPending) setEditingRoute(null); }}>
           <DialogContent>
             <DialogHeader><DialogTitle>Edit route</DialogTitle></DialogHeader>
-            {editingRoute && <form onSubmit={(event) => updateRoute.mutate(event)} className="space-y-4">
+            {editingRoute && <form onSubmit={(event) => { event.preventDefault(); updateRoute.mutate(event.currentTarget); }} className="space-y-4">
               <Field label="Route name"><Input name="route_name" defaultValue={editingRoute.route_name} required /></Field>
               <Field label="Area / notes"><Textarea name="area" defaultValue={editingRoute.area || ""} /></Field>
               <Field label="Status"><Select name="status" defaultValue={editingRoute.status || "active"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></Field>
