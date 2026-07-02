@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
   Eye,
   IndianRupee,
@@ -30,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -1103,6 +1106,100 @@ const CustomerForm = ({ customer, data, adminId, onDone }: { customer?: Customer
   );
 };
 
+const CustomerInsights = ({ customer, data }: { customer: CustomerRow; data: ReturnType<typeof useAdminData> }) => {
+  const [chartMonth, setChartMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const customerDeliveries = (data.deliveries.data || []).filter((delivery) => delivery.customer_id === customer.id);
+  const customerInvoices = (data.invoices.data || []).filter((invoice) => invoice.customer_id === customer.id);
+  const customerPayments = (data.payments.data || [])
+    .filter((payment) => payment.customer_id === customer.id)
+    .sort((a, b) => b.payment_date.localeCompare(a.payment_date));
+  const totalBilled = customerInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount || 0), 0);
+  const totalPaid = customerPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const pending = customerInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_amount || 0), 0);
+  const skippedAmount = customerDeliveries
+    .filter((delivery) => delivery.delivery_status === "Skipped" || delivery.delivery_status === "Cancelled")
+    .reduce((sum, delivery) => sum + Number(delivery.quantity || 0) * Number(delivery.unit_price || 0), 0);
+  const monthPrefix = monthKey(chartMonth);
+  const monthDeliveries = customerDeliveries.filter((delivery) => delivery.delivery_date.startsWith(monthPrefix));
+  const deliveredCount = monthDeliveries.filter((delivery) => delivery.delivery_status === "Delivered").length;
+  const skippedCount = monthDeliveries.filter((delivery) => delivery.delivery_status === "Skipped" || delivery.delivery_status === "Cancelled").length;
+  const pendingCount = monthDeliveries.filter((delivery) => delivery.delivery_status === "Pending").length;
+  const deliveredQuantity = monthDeliveries
+    .filter((delivery) => delivery.delivery_status === "Delivered")
+    .reduce((sum, delivery) => sum + Number(delivery.quantity || 0), 0);
+  const daysInMonth = new Date(chartMonth.getFullYear(), chartMonth.getMonth() + 1, 0).getDate();
+  const firstDay = new Date(chartMonth.getFullYear(), chartMonth.getMonth(), 1).getDay();
+  const deliveriesByDay = new Map(monthDeliveries.map((delivery) => [Number(delivery.delivery_date.slice(-2)), delivery]));
+  const dateLabel = (date?: string | null) => date ? new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "No payments yet";
+
+  return (
+    <Tabs defaultValue="overview" className="mt-2">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="payments">Payment history</TabsTrigger>
+        <TabsTrigger value="deliveries">Delivery chart</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" className="mt-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <DetailItem label="Full name" value={customer.full_name} />
+          <DetailItem label="Phone" value={customer.phone} />
+          <div className="sm:col-span-2"><DetailItem label="Address" value={customer.address || customer.area} /></div>
+          <DetailItem label="Product" value={customer.product_name || customer.product_category || customer.milk_type} />
+          <DetailItem label="Delivery time" value={customer.delivery_time} />
+          <DetailItem label="Daily quantity" value={liters(customer.daily_quantity)} />
+          <DetailItem label="Price per liter" value={money(customer.price_per_liter)} />
+          <DetailItem label="Advance payment" value={money(customer.advance_payment)} />
+          <DetailItem label="Opening balance" value={money(customer.opening_balance)} />
+          <DetailItem label="Status" value={customer.status} />
+          <div className="sm:col-span-2"><DetailItem label="Notes" value={customer.notes} /></div>
+        </div>
+      </TabsContent>
+      <TabsContent value="payments" className="mt-5 space-y-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard title="Total billed" value={money(totalBilled)} icon={IndianRupee} />
+          <StatCard title="Paid" value={money(totalPaid)} icon={CreditCard} />
+          <StatCard title="Pending" value={money(pending)} icon={IndianRupee} />
+          <StatCard title="Advance" value={money(customer.advance_payment)} icon={CreditCard} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Last payment</p><p className="mt-1 text-lg font-semibold">{dateLabel(customerPayments[0]?.payment_date)}</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Skipped delivery amount</p><p className="mt-1 text-lg font-semibold">{money(skippedAmount)}</p><p className="text-xs text-muted-foreground">Excluded from bill</p></CardContent></Card>
+        </div>
+        {!customerPayments.length ? <EmptyState title="No payments" description="No payments have been recorded for this customer." /> : (
+          <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Method</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader><TableBody>
+            {customerPayments.map((payment) => <TableRow key={payment.id}><TableCell className="font-medium">{dateLabel(payment.payment_date)}</TableCell><TableCell>{payment.payment_method || "—"}</TableCell><TableCell>{payment.payment_type || "Payment"}</TableCell><TableCell className="text-right font-semibold">{money(payment.amount)}</TableCell></TableRow>)}
+          </TableBody></Table>
+        )}
+      </TabsContent>
+      <TabsContent value="deliveries" className="mt-5 space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <Button size="icon" variant="outline" onClick={() => setChartMonth(new Date(chartMonth.getFullYear(), chartMonth.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <p className="font-semibold">{chartMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</p>
+          <Button size="icon" variant="outline" onClick={() => setChartMonth(new Date(chartMonth.getFullYear(), chartMonth.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard title="Total days" value={daysInMonth} icon={CalendarCheck} />
+          <StatCard title="Delivered" value={deliveredCount} icon={CalendarCheck} />
+          <StatCard title="Skipped" value={skippedCount} icon={CalendarCheck} />
+          <StatCard title="Pending" value={pendingCount} icon={CalendarCheck} />
+          <StatCard title="Quantity delivered" value={liters(deliveredQuantity)} icon={Milk} />
+        </div>
+        <Card><CardHeader><CardTitle>Delivery calendar</CardTitle></CardHeader><CardContent>
+          <div className="grid grid-cols-7 gap-2 text-center text-xs text-muted-foreground">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <div key={day}>{day}</div>)}</div>
+          <div className="mt-2 grid grid-cols-7 gap-2">
+            {Array.from({ length: firstDay }).map((_, index) => <div key={`blank-${index}`} />)}
+            {Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
+              const delivery = deliveriesByDay.get(day);
+              const tone = delivery?.delivery_status === "Delivered" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : delivery?.delivery_status === "Pending" ? "border-amber-200 bg-amber-100 text-amber-800" : delivery ? "border-red-200 bg-red-100 text-red-800" : "bg-muted/40";
+              return <div key={day} className={`flex min-h-14 flex-col items-center justify-center rounded-lg border text-sm ${tone}`}><span>{day}</span>{delivery && <span className="mt-1 text-[10px] font-medium">{delivery.delivery_status}</span>}</div>;
+            })}
+          </div>
+        </CardContent></Card>
+      </TabsContent>
+    </Tabs>
+  );
+};
+
 const CustomersSection = ({ data, adminId }: { data: ReturnType<typeof useAdminData>; adminId: string }) => {
   const [open, setOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRow | undefined>();
@@ -1188,21 +1285,9 @@ const CustomersSection = ({ data, adminId }: { data: ReturnType<typeof useAdminD
           )}
         </CardContent>
         <Dialog open={Boolean(viewingCustomer)} onOpenChange={(isOpen) => { if (!isOpen) setViewingCustomer(null); }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader><DialogTitle>Customer details</DialogTitle></DialogHeader>
-            {viewingCustomer && <div className="grid gap-5 sm:grid-cols-2">
-              <DetailItem label="Full name" value={viewingCustomer.full_name} />
-              <DetailItem label="Phone" value={viewingCustomer.phone} />
-              <div className="sm:col-span-2"><DetailItem label="Address" value={viewingCustomer.address || viewingCustomer.area} /></div>
-              <DetailItem label="Product" value={viewingCustomer.product_name || viewingCustomer.product_category || viewingCustomer.milk_type} />
-              <DetailItem label="Delivery time" value={viewingCustomer.delivery_time} />
-              <DetailItem label="Daily quantity" value={liters(viewingCustomer.daily_quantity)} />
-              <DetailItem label="Price per liter" value={money(viewingCustomer.price_per_liter)} />
-              <DetailItem label="Advance payment" value={money(viewingCustomer.advance_payment)} />
-              <DetailItem label="Opening balance" value={money(viewingCustomer.opening_balance)} />
-              <DetailItem label="Status" value={viewingCustomer.status} />
-              <div className="sm:col-span-2"><DetailItem label="Notes" value={viewingCustomer.notes} /></div>
-            </div>}
+          <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+            <DialogHeader><DialogTitle>{viewingCustomer?.full_name || "Customer details"}</DialogTitle></DialogHeader>
+            {viewingCustomer && <CustomerInsights customer={viewingCustomer} data={data} />}
           </DialogContent>
         </Dialog>
         <Dialog open={open} onOpenChange={setOpen}>
